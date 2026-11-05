@@ -2,50 +2,50 @@ USE parches;
 GO
 
 CREATE TABLE servers (
-    server_id                 VARCHAR(10) NOT NULL PRIMARY KEY,
-    os_family                 VARCHAR(30),
-    os_lifecycle              VARCHAR(20),
-    infrastructure_type       VARCHAR(20),
-    asset_type                VARCHAR(30),
-    functional_role           VARCHAR(40),
-    environment               VARCHAR(20),
-    region_group              VARCHAR(20),
-    asset_criticality         VARCHAR(20),
-    cpu_capacity_band         VARCHAR(20),
-    memory_capacity_band      VARCHAR(20),
-    architecture_band         VARCHAR(20),
-    inventory_freshness_band  VARCHAR(20),
-    boot_age_band             VARCHAR(20),
-    exposure_category         VARCHAR(30),
-    risk_band                 VARCHAR(20),
-    vulnerability_volume_band VARCHAR(20)
+    serverid                 VARCHAR(10) NOT NULL PRIMARY KEY,
+    osfamily                 VARCHAR(30),
+    oslifecycle              VARCHAR(20),
+    infrastructuretype       VARCHAR(20),
+    assettype                VARCHAR(30),
+    functionalrole           VARCHAR(40),
+    environment              VARCHAR(20),
+    regiongroup              VARCHAR(20),
+    assetcriticality         VARCHAR(20),
+    cpucapacityband          VARCHAR(20),
+    memorycapacityband       VARCHAR(20),
+    architectureband         VARCHAR(20),
+    inventoryfreshnessband   VARCHAR(20),
+    bootageband              VARCHAR(20),
+    exposurecategory         VARCHAR(30),
+    riskband                 VARCHAR(20),
+    vulnerabilityvolumeband  VARCHAR(20)
 );
 
 CREATE TABLE findings (
-    finding_id               VARCHAR(15) NOT NULL PRIMARY KEY,
-    server_id                VARCHAR(10) NOT NULL,
-    vulnerability_type_id    VARCHAR(15),
-    functional_category      VARCHAR(30),
-    severity                 TINYINT CHECK (severity BETWEEN 1 AND 5),
-    finding_status           VARCHAR(20),
-    age_band                 VARCHAR(20),
-    last_seen_band           VARCHAR(20),
-    detection_frequency_band VARCHAR(20),
-    reopen_band              VARCHAR(20),
-    exploitability_category  VARCHAR(30),
-    malware_association      VARCHAR(30),
-    compliance_flag          VARCHAR(10),
-    port_category            VARCHAR(30),
-    protocol_category        VARCHAR(20),
-    encryption_context       VARCHAR(10),
-    remediation_category     VARCHAR(30),
-    sla_status               VARCHAR(30),
-    asset_criticality        VARCHAR(20),
-    finding_risk_band        VARCHAR(20),
-    CONSTRAINT fk_findings_server FOREIGN KEY (server_id) REFERENCES servers(server_id)
+    findingid               VARCHAR(15) NOT NULL PRIMARY KEY,
+    serverid                VARCHAR(10) NOT NULL,
+    vulnerabilitytypeid     VARCHAR(15),
+    functionalcategory      VARCHAR(30),
+    severity                TINYINT CHECK (severity BETWEEN 1 AND 5),
+    findingstatus           VARCHAR(20),
+    ageband                 VARCHAR(20),
+    lastseenband            VARCHAR(20),
+    detectionfrequencyband  VARCHAR(20),
+    reopenband              VARCHAR(20),
+    exploitabilitycategory  VARCHAR(30),
+    malwareassociation      VARCHAR(30),
+    complianceflag          VARCHAR(10),
+    portcategory            VARCHAR(30),
+    protocolcategory        VARCHAR(20),
+    encryptioncontext       VARCHAR(10),
+    remediationcategory     VARCHAR(30),
+    slastatus               VARCHAR(30),
+    assetcriticality        VARCHAR(20),
+    findingriskband         VARCHAR(20),
+    CONSTRAINT fk_findings_server FOREIGN KEY (serverid) REFERENCES servers(serverid)
 );
 
-CREATE INDEX ix_findings_server ON findings(server_id);
-CREATE INDEX ix_findings_sla    ON findings(sla_status);
-CREATE INDEX ix_findings_status ON findings(finding_status);
+CREATE INDEX ix_findings_server ON findings(serverid);
+CREATE INDEX ix_findings_sla    ON findings(slastatus);
+CREATE INDEX ix_findings_status ON findings(findingstatus);
 GO

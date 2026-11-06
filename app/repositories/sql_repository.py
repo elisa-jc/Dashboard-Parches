@@ -1,5 +1,5 @@
-from sqlalchemy import create_engine
 import pandas as pd
+from sqlalchemy import create_engine
 from app.repositories.base import BaseRepository
 
 class SQLRepository(BaseRepository):
@@ -7,9 +7,9 @@ class SQLRepository(BaseRepository):
         self.engine = create_engine(connection_string)
 
     def get_servidores(self) -> pd.DataFrame:
-        query = "SELECT * FROM servidores"
+        query = "SELECT * FROM servers"
         return pd.read_sql(query, self.engine)
 
     def get_vulnerabilidades(self) -> pd.DataFrame:
-        query = "SELECT * FROM vulnerabilidades"
+        query = "SELECT * FROM findings"
         return pd.read_sql(query, self.engine)

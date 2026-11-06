@@ -11,3 +11,5 @@ class BaseRepository(ABC):
     def get_vulnerabilidades(self) -> pd.DataFrame:
         """Retorna el DataFrame con las vulnerabilidades."""
         pass
+
+    

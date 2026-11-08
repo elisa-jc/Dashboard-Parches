@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import os
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
@@ -38,7 +37,6 @@ async def datos_invalidos(_: Request, exc: ValueError):
 
 if __name__ == "__main__":
     import uvicorn
-=======
 import os
 from dotenv import load_dotenv
 from fastapi import FastAPI, Request
@@ -78,5 +76,4 @@ async def datos_invalidos(_: Request, exc: ValueError):
 
 if __name__ == "__main__":
     import uvicorn
->>>>>>> 7a94fb9e507272fc472fc5d8d0790919c2361f34
     uvicorn.run("app.main:app", host="0.0.0.0", port=8000, reload=True)

@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import os
 import pandas as pd
 import dotenv
@@ -37,7 +36,6 @@ with engine.begin() as conn:
     servers.to_sql("servers", conn, if_exists="append", index=False)
     findings.to_sql("findings", conn, if_exists="append", index=False)
 
-=======
 import os
 import pandas as pd
 import dotenv
@@ -76,5 +74,4 @@ with engine.begin() as conn:
     servers.to_sql("servers", conn, if_exists="append", index=False)
     findings.to_sql("findings", conn, if_exists="append", index=False)
 
->>>>>>> 7a94fb9e507272fc472fc5d8d0790919c2361f34
 print(f"Carga completa: {len(servers)} servers, {len(findings)} findings")

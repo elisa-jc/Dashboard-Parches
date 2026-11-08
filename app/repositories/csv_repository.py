@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 import os
 from pathlib import Path
 
@@ -39,7 +38,6 @@ class CSVRepository(BaseRepository):
 
     def recargar(self) -> None:
         """Descarta la caché (por si se regeneran los CSV)."""
-=======
 import os
 from pathlib import Path
 
@@ -80,5 +78,4 @@ class CSVRepository(BaseRepository):
 
     def recargar(self) -> None:
         """Descarta la caché (por si se regeneran los CSV)."""
->>>>>>> 7a94fb9e507272fc472fc5d8d0790919c2361f34
         self._cache.clear()

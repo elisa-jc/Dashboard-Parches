@@ -153,33 +153,33 @@ const mapZones = [
     risk: 'Bajo',
     score: 34,
     color: '#2c9b68',
-    path: 'M38.4 20.4L62.4 42L78 60L90 72L104.4 90L117.6 102L128.8 114L246 114L248.4 96L249.6 91.2L225.6 84L210 60L198 44.4L180 54L162 45.6L138 20.4L117.6 20.4L117.6 26.4L84 26.4L38.4 12Z M10.8 12L38.4 12L38.4 21.6L45.6 42L58.8 58.8L69.6 78L81.6 92.4L94.8 111.6L96.9 114L92.4 114L78 104.4L72 90L62.4 74.4L45.6 66L33.6 48L22.8 30Z',
-    label: [132, 60],
+    path: 'M13 20L19.5 15.2L26 13.8L42.3 15.6L56.3 15.2L70.4 16.8L92.1 17.3L97.5 16.3L106.2 18.4L102.9 22.8L93.2 27.1L95.3 29.2L106.2 31.4L109.4 34.7L110.5 28.2L111.6 23.8L119.2 24.9L125.7 26L128.9 30.3L134.3 34.7L130 36.8L123.5 36.8L125.7 41.2L130 41.2L123.5 43.3L119.2 44.4L119.2 45.8L114.8 47.1L112.7 50.9L112.7 53.1L107.2 57.4L108.3 61.7L107.8 63.7L106.2 61.7L105.1 59L102.9 58.8L98.6 58.5L97.5 59.6L93.2 59L89.9 60.9L89.4 63.9L89.3 65.5L79 65.5L76.9 63.4L73.7 59.6L70.6 56.5L70.7 58.5L72.8 61.2L75.8 65L76.1 65.5L75.8 65.5L74.8 64.5L73.1 62.3L71 60.1L69.9 58.5L68.3 55.8L66.6 54.2L64.4 53.6L62.3 50L60.7 47.3L60.3 44.4L60.7 40.9L59.9 38.6L61.7 37.9L59.6 36.8L56.3 34.7L54.2 32L49.8 29.2L46.6 27.6L43.3 26.2L36.8 25.5L32.5 26.5L30.3 28.2L23.8 29.8L18.4 31.6L21.7 27.6L19.5 26L16.3 23.8L15.2 21.7Z M115.9 6.5L123.5 3.3L151.7 1.1L173.3 2.2L175.5 8.7L171.2 15.2L160.3 17.3L149.5 26L143 24.9L138.7 20.6L135.4 15.2L130 8.7Z M184.7 49.1L185.3 44.4L193.4 43.9L193.7 41.2L190.1 38.6L193.4 38.1L196.6 35.9L199.3 35.2L204.2 32.7L204.2 29.2L206.4 28.5L206.4 32L210.2 32.5L216.7 31.6L217.7 29.2L221 26.6L226.4 26L219.9 26L218.3 24.4L222.1 20.6L218.3 20.6L214 23.3L215 26L212.9 29.2L209.1 30.9L206.9 27.1L200.4 27.1L200.4 23.8L210.2 17.9L215.6 15.2L223.2 14.1L230.7 15.7L239.4 18.4L231.8 19.3L238.9 21.1L242.7 19.5L252.4 16.8L260 16.3L268.7 16.3L274.1 12.1L281.7 11.9L289.3 9.8L303.3 7L317.4 11.1L333.7 11.9L346.7 12.5L359.7 14.1L368.3 15.7L379.2 15.2L390 16.5L390 20.6L379.2 26L371.6 26.2L370.5 28.7L364.8 35.8L363.5 29.2L357.5 26.5L348.8 26.8L343.4 32.5L347.8 34.1L346.7 39L341.3 43.9L336.9 44.6L335.5 46.8L334.2 49.3L335.2 52.9L332 53.6L332 50.2L330.4 48.2L326.6 47.7L327.2 50.9L323.9 50.7L326.1 56.3L327.2 58.5L325 62.8L322.1 65.5L269.2 65.5L269.2 65.5L267 63.5L261.6 63.9L256.8 63L256.2 61.7L250.8 60.9L249.2 58.5L247.5 58.8L249.4 62.2L250.9 64.7L253.5 64.8L255.9 62.7L258.4 65.5L258.4 65.5L235.9 65.5L232.9 60.7L232 57.1L233 55.2L234 52.5L234.2 51.2L230.7 51.9L228 51.7L225.3 51.1L223.7 49.3L223.5 47.7L226.4 46.6L228.6 46.4L232.9 45.5L236.2 46.6L240 46L240.1 44.4L235.6 42.3L233.5 42L231.3 41.2L229.7 40.6L228 41.7L226.1 42.8L225.3 44.4L225.1 46L223.2 47.1L221 47.1L219.4 47.7L220.5 49.8L218.3 51.3L216.7 48.2L216.1 46L212.3 43.9L209.8 41.7L208.3 42.3L208.5 43.3L212.3 45.7L215 47.4L212.3 49.8L212 47.7L208 45.5L206.4 43.9L204.5 42.9L202 44.2L198.3 44.1L198.3 45.5L195.9 46.6L194.5 49L192.8 51.2L189.1 52L188.2 51.1L185.5 50.9Z M188.6 52.2L193.9 52.9L198.3 51.1L205.8 50.7L206.9 53.1L206 54.7L211.2 56L216.7 55.7L216.7 58L222.1 56.7L227.5 57.2L230 57.1L230.2 58.7L231.8 61.2L234.2 65.5L178.8 65.5L180.9 61.2L184.2 59L184.7 56.3L187.6 54.2Z M189 36.8L196.6 35.8L196.8 33.8L194.8 32.5L192.8 30.3L192.8 28.6L191.8 27.5L189.6 27.5L188.5 29.8L189.6 31.4L191.8 32L190.1 33.4L189.6 34.9L191.2 35.4Z M184.2 35L188.5 34.7L188.5 32L186.3 31.2L184.2 32.5Z M169 20L171.2 19L177.7 19.2L179.8 20.6L175.5 22.2L171.2 21.9Z M335.8 57.1L338 54.2L341.3 53.6L343.4 53.4L346.7 53.1L347.8 49.8L348.8 46.6L346.7 46.6L346.4 49.3L343.4 50.9L342.3 52.2L339.1 52.5L336.9 53.6L335.5 55.2Z M346.7 45.5L348.3 41.7L352.6 43.9L349.9 45.5L347.8 45.7Z M108.3 11.4L117 14.1L121.3 15.2L127.8 18.4L124.6 22.8L117 22.8L110.5 21.1L110.5 17.3L101.8 15.2L99.7 11.9Z M67.2 13L81.3 11.9L86.7 15.2L75.8 16.8L68.3 16.3Z M97.5 8.1L113.7 6.5L127.8 2.2L102.9 1.1L97.5 3.3Z',
+    label: [282, 37],
   },
   {
     name: 'Centro',
     risk: 'Atención',
     score: 61,
     color: '#e29a28',
-    path: 'M128.8 114L134.4 120L150 142.8L153.6 158.4L164.4 174L178.2 180L356.4 180L366 166.8L372 144L354 145.2L331.2 150L330 164.4L312 178.8L306 180L274.5 180L270 178.8L260.4 168L249.6 150L243.6 132L246 114Z M96.9 114L102 120L103.2 127.2L92.4 114Z',
-    label: [211, 145],
+    path: 'M89.3 65.5L89.2 67.2L91 70.4L92.6 71.3L96.4 70.8L97 68.3L100.8 67.7L100.2 71L99.7 73.7L104 73.9L104.8 74.8L104.5 79.1L106.5 81.3L108.9 80.7L111 81.8L110.5 83.2L108.3 82.9L105.2 82.1L102.2 80.2L100.2 76.9L96.4 75.8L93.2 73.7L90.5 74L87.8 72.9L84.5 71.5L81 69.3L80.5 67.2L79 65.5L76.1 65.5L76.4 66.1L75.8 65.5Z M111.3 81.6L113.2 79.3L117.8 77.6L121.3 79.5L127.8 79.4L130 81.8L133.3 84.5L138.7 86.1L140.8 89.4L143 91.9L146.8 93.7L151.7 94L157.1 96.6L157.1 100.8L154.4 104L152.8 109.4L150.6 115.4L147.3 115.9L146.6 116.5L118.7 116.5L118.9 114.3L118.8 110.8L113.2 107.8L111 104L109.4 99.7L107 97.3L108.1 94.8L107.4 93.2L108.3 90.5L109.6 89.2L111.3 86.9L111 84.5Z M322.1 65.5L321.8 65.9L314.2 68.3L309.8 69.3L312.5 74.8L313.1 78L309.8 81.3L308.5 81.6L306.6 79.6L303.9 76.4L303.3 82.3L307.1 89.5L303.9 87.2L301.7 82.3L301.2 76.9L300.6 73.1L297.2 73.7L296.8 69.9L294.7 67.7L292.5 67.2L289.3 67.7L288.7 69.3L286.5 71L282.2 74.2L281.7 80.2L279 82.3L277.3 79.6L274.1 72.6L273.9 68.3L270.8 68.5L269.2 65.5L269.2 65.5L258.4 65.5L258.4 65.5L259.8 66.6L256.8 70.4L251.3 73.4L243.7 77.1L241.9 77.1L241.3 73.7L237.2 67.7L235.9 65.5Z M234.2 65.5L235.1 67.2L236.7 71.5L238.3 74.2L241.6 77.5L242.7 79.6L250.2 78.2L250.2 79.7L247 85.6L242.7 89.9L239.4 93.2L237.2 96.4L237.8 99.7L238.9 102.9L238.9 107.2L232.9 112.7L233.4 116.5L210.9 116.5L210.7 114.8L208 110L209.6 104L208.5 97.5L204.8 92.1L205.3 87.2L204.2 86.1L200.4 84.7L197.2 84.2L192.8 85.9L190.1 85.4L186.9 86.2L183.1 83.6L180.4 80.7L176.9 77.5L176.1 75.1L177.1 70.4L177.7 67.7L178.8 65.5Z M318 114.8L318.2 116.5L358.5 116.5L357.5 115.4L353.2 111.6L352.5 107.2L350.5 102.9L348.8 102.6L348.3 105.1L346.7 110L343.4 108.1L341.8 107L336.9 104L335.8 105.6L331.5 106.2L327.2 109.4L326.1 112.1L321.8 113.2Z M298.2 84.9L301.2 86.7L306.6 92.1L309.8 94.3L309.3 97.3L305.5 95.3L302.3 91Z M309.3 98L312 98L315.3 98L319 99.4L318.5 100.4L312 99.4L309.3 98.4Z M313.1 89.4L315.3 89L317.4 87.5L321.8 83.4L323.9 85.6L322.8 89.9L320.7 94.3L318.5 95.3L315.3 94.3L313.6 92.1Z M336.9 92.1L341.3 94.6L344.5 93.2L347.8 93.8L353.2 97L357.5 102.3L354.3 101.8L349.9 100.8L347.8 100.8L344.5 99.7L343.4 96.4L339.1 95.3Z M248.4 104L249.7 107.8L248.6 110.5L246.6 116.5L242.7 116.5L242.1 114.8L243.2 108.3L245.4 107.8L247 105.6Z M102.9 67.2L106.2 66L111.6 68.3L114.6 69.1L111.6 69.4L108.3 67.5L104 67.3Z M114.4 71.1L117 69.4L120.9 70.8L119.2 71.3L116.1 71.5Z M325 71L327.2 71.1L327.2 75.6L329.3 76.9L326.1 76.4L325 73.7Z',
+    label: [217, 87],
   },
   {
     name: 'Sur',
     risk: 'Crítico',
     score: 82,
     color: '#e21f3d',
-    path: 'M178.2 180L192 186L218.4 200.4L252 211.2L282 207.6L300 218.4L309.6 228L315.6 210L324 188.4L345.6 188.4L356.4 180L306 180L288 183.6L274.5 180Z',
-    label: [275, 205],
+    path: 'M146.6 116.5L143 119.2L142.2 121.9L138.7 125.7L137.1 127.8L133.8 128.8L131.9 128L133 130.5L127.8 133.3L127.5 135.1L124.6 135.4L125.3 137.4L123.9 139.8L121.9 141.4L123.5 143L120.2 145.7L120.9 147.8L122.4 150.5L118.1 150.6L114.3 147.3L113.2 141.9L115.2 137.6L115.4 131.1L117.5 123.5L118.3 119.2L118.7 116.5Z M233.4 116.5L233.5 117L230.2 119.2L230.5 121.3L227.5 125.1L224.2 127.3L218.8 128L216.7 128.7L214.9 128L214.5 124.6L211.2 119.7L210.9 116.5Z M318.2 116.5L318.5 119.2L319.6 127.8L322.8 128.9L328.3 127.8L332.6 125.7L336.9 125.1L341.3 128.6L344.5 128.9L346.7 132.2L352.1 132.7L357.5 131.1L360.8 124.6L361.1 119.2L358.5 116.5Z M382.1 128.4L384 130.5L387.8 131.6L385.7 133.8L384.6 136L384 133.8L382.4 129.5Z M382.1 134.9L383.5 136.2L380.3 139.2L378.1 141.4L375.4 140.8L377 138.7L380.8 136Z M246.6 116.5L246.1 117.9L243.2 118.1L242.7 116.5Z',
+    label: [222, 122],
   },
 ];
 
-function MexicoRiskMap({ region, onSelect }: { region: string; onSelect: (region: string) => void }) {
+function WorldRiskMap({ region, onSelect }: { region: string; onSelect: (region: string) => void }) {
   return (
     <div className="risk-map-layout">
       <div className="map-stage">
         <div className="map-grid" />
-        <svg viewBox="0 0 390 234" role="img" aria-label="Mapa de riesgo de México por región">
+        <svg viewBox="0 0 390 153" role="img" aria-label="Mapa mundial de riesgo por región">
           {mapZones.map((zone) => (
             <g
               key={zone.name}
@@ -192,7 +192,6 @@ function MexicoRiskMap({ region, onSelect }: { region: string; onSelect: (region
             </g>
           ))}
         </svg>
-        <div className="map-radar"><i /><i /><i /></div>
       </div>
       <div className="zone-list">
         {mapZones.map((zone) => (
@@ -264,12 +263,6 @@ export default function App() {
     maintenanceDay: 'Sábado',
     maintenanceTime: '02:00',
   });
-  const [profile, setProfile] = useState({
-    name: 'Ana Martínez',
-    email: 'ana.martinez@femsa.com',
-    role: 'Administradora de seguridad',
-    area: 'Infraestructura y Ciberseguridad',
-  });
   const data = regions[region as keyof typeof regions];
   const filteredAlerts = alertFilter === 'Todas' ? alerts : alerts.filter((alert) => alert.category === alertFilter);
 
@@ -289,7 +282,6 @@ export default function App() {
     alertas: 'Alertas',
     historial: 'Historial',
     configuracion: 'Configuración',
-    cuenta: 'Mi cuenta',
   };
   const pageTitle = active === 'detalle-region' ? `Detalle regional · ${region}` : pageTitles[active] ?? 'Resumen ejecutivo';
   const goTo = (id: string) => { setActive(id); setSidebarOpen(false); };
@@ -337,9 +329,6 @@ export default function App() {
           <div><span style={{ width: `${Math.round(regions.Todas.remediation)}%` }} /></div>
           <small>{Math.round(regions.Todas.remediation)}% de cobertura global</small>
         </div>
-        <div className="user-card">
-          <button className="avatar" onClick={() => goTo('cuenta')} aria-label="Abrir mi cuenta">AM</button><div><strong>Ana Martínez</strong><span>Administradora</span></div><button className="icon-button inverse" onClick={() => goTo('cuenta')} title="Opciones de cuenta" aria-label="Opciones de cuenta"><Icon name="more" /></button>
-        </div>
       </aside>
       {sidebarOpen && <button className="sidebar-scrim" onClick={() => setSidebarOpen(false)} aria-label="Cerrar menú" />}
 
@@ -358,7 +347,6 @@ export default function App() {
                 </div>
               )}
             </div>
-            <button className="avatar top-avatar" onClick={() => setActive('cuenta')} title="Perfil de Ana Martínez" aria-label="Abrir perfil de Ana Martínez">AM</button>
           </div>
         </header>
 
@@ -366,7 +354,7 @@ export default function App() {
           {status !== 'online' && <div className={`api-banner ${status}`}>{status === 'loading' ? 'Conectando con el back end…' : 'Sin conexión con el back end: se muestran datos de ejemplo.'}</div>}
           <div className="page-heading">
             <div><p className="eyebrow">CENTRO DE OPERACIONES</p><h1>{pageTitle}</h1><span>Visibilidad y control del ciclo de remediación de infraestructura.</span></div>
-            {!['configuracion', 'cuenta', 'historial'].includes(active) && <div className="heading-actions">
+            {!['configuracion', 'historial'].includes(active) && <div className="heading-actions">
               <label className="select-control"><span>Región</span><select value={region} onChange={(e) => setRegion(e.target.value)}>{Object.keys(regions).map((r) => <option key={r}>{r}</option>)}</select></label>
               <button className="secondary-button" onClick={() => window.open(exportUrl(region), '_blank')}><Icon name="download" size={17} /> Exportar</button>
               <button className="primary-button" onClick={() => setActive('servidores')}>Ver servidores <Icon name="arrow" size={17} /></button>
@@ -396,7 +384,7 @@ export default function App() {
                     <div><p className="eyebrow">INTELIGENCIA GEOGRÁFICA</p><h2>Mapa de exposición crítica</h2><span>Selecciona una zona para actualizar el dashboard.</span></div>
                     <div className="risk-scale"><span>Bajo</span><i /><i /><i /><span>Crítico</span></div>
                   </div>
-                  <MexicoRiskMap region={region} onSelect={(selectedRegion) => { setRegion(selectedRegion); setActive('detalle-region'); }} />
+                  <WorldRiskMap region={region} onSelect={(selectedRegion) => { setRegion(selectedRegion); setActive('detalle-region'); }} />
                 </article>
 
                 <article className="csv-panel">
@@ -587,37 +575,7 @@ export default function App() {
               </div>
             </section>
           )}
-
-          {active === 'cuenta' && (
-            <section className="account-layout">
-              <article className="panel-card account-profile">
-                <div className="profile-cover"><span>FEMSA</span></div>
-                <div className="profile-main">
-                  <div className="profile-avatar">AM<button title="Cambiar fotografía" aria-label="Cambiar fotografía"><Icon name="settings" size={13} /></button></div>
-                  <h2>{profile.name}</h2><p>{profile.role}</p>
-                  <StatusBadge tone="success">Cuenta activa</StatusBadge>
-                  <dl><div><dt>Último acceso</dt><dd>Hoy, 10:38</dd></div><div><dt>Región asignada</dt><dd>Todas las regiones</dd></div><div><dt>Autenticación</dt><dd>SSO corporativo</dd></div></dl>
-                </div>
-              </article>
-              <div className="account-content">
-                <article className="panel-card settings-section">
-                  <div className="settings-heading"><div><p className="eyebrow">INFORMACIÓN PERSONAL</p><h2>Datos de la cuenta</h2><span>Información visible dentro del centro de operaciones.</span></div><Icon name="shield" size={20} /></div>
-                  <div className="settings-fields two-columns">
-                    <label><span>Nombre completo</span><input value={profile.name} onChange={(e) => setProfile({ ...profile, name: e.target.value })} /></label>
-                    <label><span>Correo corporativo</span><input type="email" value={profile.email} onChange={(e) => setProfile({ ...profile, email: e.target.value })} /></label>
-                    <label><span>Rol</span><input value={profile.role} onChange={(e) => setProfile({ ...profile, role: e.target.value })} /></label>
-                    <label><span>Área</span><input value={profile.area} onChange={(e) => setProfile({ ...profile, area: e.target.value })} /></label>
-                  </div>
-                </article>
-                <article className="panel-card settings-section">
-                  <div className="settings-heading"><div><p className="eyebrow">ACCESO</p><h2>Permisos asignados</h2><span>Administrados por el directorio corporativo.</span></div><Icon name="settings" size={20} /></div>
-                  <div className="permission-grid"><div><Icon name="check" size={15} /><span><b>Gestión de parches</b><small>Crear y actualizar planes</small></span></div><div><Icon name="check" size={15} /><span><b>Administración</b><small>Modificar políticas y SLA</small></span></div><div><Icon name="check" size={15} /><span><b>Exportación</b><small>Descargar reportes operativos</small></span></div><div><Icon name="check" size={15} /><span><b>Datos</b><small>Cargar archivos CSV</small></span></div></div>
-                </article>
-                <div className="settings-save"><span className={profileSaved ? 'visible' : ''}><Icon name="check" size={15} /> Perfil actualizado</span><button className="primary-button" onClick={() => { setProfileSaved(true); window.setTimeout(() => setProfileSaved(false), 2500); }}>Guardar perfil</button></div>
-              </div>
-            </section>
-          )}
-
+          
           {active === 'historial' && (
             <section className="panel-card placeholder-panel"><span><Icon name={active === 'historial' ? 'history' : 'settings'} size={28} /></span><h2>{pageTitle}</h2><p>Este módulo está listo para conectarse con la fuente de datos corporativa.</p><button className="secondary-button" onClick={() => setActive('resumen')}>Volver al resumen</button></section>
           )}

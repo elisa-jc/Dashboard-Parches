@@ -90,7 +90,7 @@ COLS_PRIORIDAD = [
 ]
 
 # Carpeta donde se guardan config.json e historial.json (la misma de los CSV).
-RAIZ = Path(__file__).resolve().parents[2]
+RAIZ = Path(__file__).resolve().parents[3]
 DATA_DIR = Path(os.getenv("DATA_DIR") or RAIZ / "tablas_limpias")
 CONFIG_PATH = DATA_DIR / "config.json"
 HISTORIAL_PATH = DATA_DIR / "historial.json"

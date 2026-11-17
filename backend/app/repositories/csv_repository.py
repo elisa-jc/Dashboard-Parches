@@ -6,8 +6,8 @@ import pandas as pd
 
 from app.repositories.base import BaseRepository
 
-# Raíz del proyecto (carpeta que contiene "app/" y "tablas_limpias/")
-RAIZ = Path(__file__).resolve().parents[2]
+# Raíz del proyecto (carpeta que contiene "backend/" y "tablas_limpias/")
+RAIZ = Path(__file__).resolve().parents[3]
 
 
 class CSVRepository(BaseRepository):

@@ -1,4 +1,14 @@
-.env
 *.xlsx
 .ipynb_checkpoints/
 __pycache__/
+*.py[cod]
+.env
+.env.*
+!.env.example
+frontend/node_modules/
+frontend/dist/
+backend/.venv/
+.pytest_cache/
+tablas_limpias/*.bak
+tablas_limpias/config.json
+tablas_limpias/historial.json

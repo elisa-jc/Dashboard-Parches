@@ -314,3 +314,76 @@ h1, h2, h3 { font-family: 'Open Sans', sans-serif; color: var(--ink); }
 
 /* La columna "Estado" trae el motivo completo del back end: se recorta para no desbordar la tabla */
 .table-wrap td:nth-child(6) { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ===== Mapa por países ===== */
+.geo-layout { display: grid; grid-template-columns: minmax(0, 1fr) 190px; gap: 18px; align-items: stretch; margin-top: 8px; }
+.geo-stage { position: relative; min-height: 285px; display: grid; place-items: center; overflow: hidden; border-radius: 10px; background: linear-gradient(180deg, #dff5fa 0%, #c9eef5 100%); border: 1px solid #bfe3ec; }
+.geo-stage svg { width: 100%; height: auto; max-height: 300px; display: block; }
+.geo-country { fill: #d7dadf; stroke: rgba(255,255,255,.85); stroke-width: .5; stroke-linejoin: round; vector-effect: non-scaling-stroke; transition: fill .25s ease, opacity .25s ease, filter .2s ease; }
+.geo-country.has-data { cursor: pointer; }
+.geo-country.has-data:hover { filter: brightness(1.08) saturate(1.1); stroke: #fff; stroke-width: 1.3; }
+.geo-country.dim { opacity: .4; }
+.geo-country.selected { stroke: #1b1f27; stroke-width: 1.5; }
+.geo-toolbar { position: absolute; z-index: 3; top: 10px; left: 10px; }
+.geo-toolbar .segmented { background: rgba(255,255,255,.78); backdrop-filter: blur(4px); }
+.geo-legend { position: absolute; z-index: 3; left: 10px; bottom: 10px; display: flex; align-items: center; gap: 8px; padding: 6px 10px; border-radius: 7px; background: rgba(255,255,255,.78); backdrop-filter: blur(4px); font-size: 8px; color: #4a5260; }
+.geo-legend-bar { width: 96px; height: 6px; border-radius: 3px; background: linear-gradient(90deg, rgb(30,144,255), rgb(46,204,113) 25%, rgb(241,220,70) 50%, rgb(245,150,30) 75%, rgb(229,38,38)); }
+.geo-legend .nodata { display: inline-flex; align-items: center; gap: 4px; margin-left: 6px; }
+.geo-legend .nodata i { width: 8px; height: 8px; border-radius: 2px; background: #d7dadf; }
+.geo-tooltip { position: absolute; z-index: 4; pointer-events: none; padding: 7px 10px; background: rgba(21,24,32,.92); color: #fff; border-radius: 7px; box-shadow: 0 8px 22px rgba(0,0,0,.2); white-space: nowrap; }
+.geo-tooltip b, .geo-tooltip span { display: block; }
+.geo-tooltip b { font-size: 11px; margin-bottom: 2px; }
+.geo-tooltip span { color: #c9ced6; font-size: 9px; }
+.country-list { display: grid; align-content: start; gap: 6px; }
+.country-list > p { margin: 0 0 2px; font-size: 8px; font-weight: 800; letter-spacing: 1.2px; color: var(--muted); }
+.country-list button { display: grid; grid-template-columns: 10px 1fr auto; align-items: center; gap: 9px; text-align: left; padding: 9px 10px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; color: var(--ink); transition: .18s ease; }
+.country-list button:hover, .country-list button.active { border-color: #ed9aa8; box-shadow: 0 4px 14px rgba(25,29,36,.07); }
+.country-list i { width: 10px; height: 10px; border-radius: 50%; }
+.country-list b, .country-list small { display: block; }
+.country-list b { font-size: 10px; }
+.country-list small { color: var(--muted); font-size: 8px; margin-top: 1px; }
+.country-list strong { font: 700 14px 'Open Sans'; }
+
+/* ===== Filtros de servidores ===== */
+.filter-panel { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; align-items: end; padding: 14px; margin: -6px 0 18px; background: #fafafb; border: 1px solid var(--line); border-radius: 10px; animation: plan-open .22s ease; }
+.filter-panel label > span { display: block; margin-bottom: 5px; color: #707782; font-size: 8px; font-weight: 700; text-transform: uppercase; letter-spacing: .6px; }
+.filter-panel input, .filter-panel select { width: 100%; height: 36px; padding: 0 10px; color: #3b4049; background: #fff; border: 1px solid var(--line); border-radius: 7px; outline: none; font-size: 11px; }
+.filter-panel input:focus, .filter-panel select:focus { border-color: var(--red); box-shadow: 0 0 0 2px rgba(226,31,61,.1); }
+.filter-range { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+.filter-actions { display: flex; justify-content: flex-end; }
+.filter-count { display: inline-grid; place-items: center; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 8px; background: var(--red); color: #fff; font-size: 9px; }
+
+/* ===== Modo oscuro ===== */
+.dark .geo-stage { background: linear-gradient(180deg, #14232b, #0f1b22); border-color: #263840; }
+.dark .geo-country { fill: #2f343a; stroke: rgba(15,27,34,.9); }
+.dark .geo-country.selected { stroke: #fff; }
+.dark .geo-toolbar .segmented, .dark .geo-legend { background: rgba(25,23,25,.78); color: #d6cfd3; }
+.dark .geo-legend .nodata i { background: #2f343a; }
+.dark .country-list button { border-color: #3b3438; }
+.dark .filter-panel { background: #262225; border-color: #42383d; }
+.dark .filter-panel input, .dark .filter-panel select { color: #f0eaed; background: #2a2528; border-color: #493e43; }
+
+/* ===== Responsive ===== */
+@media (max-width: 850px) { .geo-layout { grid-template-columns: 1fr 170px; } }
+@media (max-width: 620px) {
+  .geo-layout { grid-template-columns: 1fr; }
+  .geo-stage { min-height: 220px; }
+  .country-list { grid-template-columns: repeat(2, 1fr); }
+  .country-list > p { grid-column: span 2; }
+}
+
+/* ===== Mapa estilo referencia (océano aqua + continente con degradado) ===== */
+.geo-stage { background: #bdf3f7; border-color: #a5e3ea; }
+.geo-land { stroke: rgba(255, 255, 255, .55); stroke-width: .6; stroke-linejoin: round; vector-effect: non-scaling-stroke; cursor: pointer; filter: drop-shadow(0 1px 1.5px rgba(0, 70, 90, .28)); }
+.geo-dim-stop { stop-color: #e6fbfd; }
+
+.dark .geo-stage { background: #10202a; border-color: #263840; }
+.dark .geo-land { stroke: rgba(255, 255, 255, .25); filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .5)); }
+.dark .geo-dim-stop { stop-color: #0d1a21; }
+
+/* Leyenda por niveles de criticidad */
+.geo-legend { flex-direction: column; align-items: stretch; gap: 4px; padding: 7px 10px; }
+.geo-legend-scale { display: grid; gap: 3px; }
+.geo-legend-bar { width: 190px; height: 7px; }
+.geo-legend-scale > div { display: flex; justify-content: space-between; font-size: 7px; font-weight: 700; }
+.geo-legend small { font-size: 7px; opacity: .75; }

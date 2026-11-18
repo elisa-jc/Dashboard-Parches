@@ -81,3 +81,4 @@ export async function loadLiveData(): Promise<LiveData> {
   }));
   return { regions, servers, alerts: alertas.alertas.map(adaptarAlerta), alertCount: alertas.conteo.TODAS ?? alertas.alertas.length, urgentes: prioridad.urgentes };
 }
+

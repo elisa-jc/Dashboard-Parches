@@ -1,5 +1,9 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
-import { exportUrl, type RegionData } from './api';
+import { geoEquirectangular, geoPath } from 'd3-geo';
+import { feature } from 'topojson-client';
+import type { Topology, GeometryCollection } from 'topojson-specification';
+import worldData from 'world-atlas/countries-110m.json';
+import type { RegionData } from './api';
 import { useBackendData } from './useBackendData';
 
 type IconName =
@@ -147,59 +151,176 @@ function Donut({ value }: { value: number }) {
   );
 }
 
-const mapZones = [
-  {
-    name: 'Norte',
-    risk: 'Bajo',
-    score: 34,
-    color: '#2c9b68',
-    path: 'M13 20L19.5 15.2L26 13.8L42.3 15.6L56.3 15.2L70.4 16.8L92.1 17.3L97.5 16.3L106.2 18.4L102.9 22.8L93.2 27.1L95.3 29.2L106.2 31.4L109.4 34.7L110.5 28.2L111.6 23.8L119.2 24.9L125.7 26L128.9 30.3L134.3 34.7L130 36.8L123.5 36.8L125.7 41.2L130 41.2L123.5 43.3L119.2 44.4L119.2 45.8L114.8 47.1L112.7 50.9L112.7 53.1L107.2 57.4L108.3 61.7L107.8 63.7L106.2 61.7L105.1 59L102.9 58.8L98.6 58.5L97.5 59.6L93.2 59L89.9 60.9L89.4 63.9L89.3 65.5L79 65.5L76.9 63.4L73.7 59.6L70.6 56.5L70.7 58.5L72.8 61.2L75.8 65L76.1 65.5L75.8 65.5L74.8 64.5L73.1 62.3L71 60.1L69.9 58.5L68.3 55.8L66.6 54.2L64.4 53.6L62.3 50L60.7 47.3L60.3 44.4L60.7 40.9L59.9 38.6L61.7 37.9L59.6 36.8L56.3 34.7L54.2 32L49.8 29.2L46.6 27.6L43.3 26.2L36.8 25.5L32.5 26.5L30.3 28.2L23.8 29.8L18.4 31.6L21.7 27.6L19.5 26L16.3 23.8L15.2 21.7Z M115.9 6.5L123.5 3.3L151.7 1.1L173.3 2.2L175.5 8.7L171.2 15.2L160.3 17.3L149.5 26L143 24.9L138.7 20.6L135.4 15.2L130 8.7Z M184.7 49.1L185.3 44.4L193.4 43.9L193.7 41.2L190.1 38.6L193.4 38.1L196.6 35.9L199.3 35.2L204.2 32.7L204.2 29.2L206.4 28.5L206.4 32L210.2 32.5L216.7 31.6L217.7 29.2L221 26.6L226.4 26L219.9 26L218.3 24.4L222.1 20.6L218.3 20.6L214 23.3L215 26L212.9 29.2L209.1 30.9L206.9 27.1L200.4 27.1L200.4 23.8L210.2 17.9L215.6 15.2L223.2 14.1L230.7 15.7L239.4 18.4L231.8 19.3L238.9 21.1L242.7 19.5L252.4 16.8L260 16.3L268.7 16.3L274.1 12.1L281.7 11.9L289.3 9.8L303.3 7L317.4 11.1L333.7 11.9L346.7 12.5L359.7 14.1L368.3 15.7L379.2 15.2L390 16.5L390 20.6L379.2 26L371.6 26.2L370.5 28.7L364.8 35.8L363.5 29.2L357.5 26.5L348.8 26.8L343.4 32.5L347.8 34.1L346.7 39L341.3 43.9L336.9 44.6L335.5 46.8L334.2 49.3L335.2 52.9L332 53.6L332 50.2L330.4 48.2L326.6 47.7L327.2 50.9L323.9 50.7L326.1 56.3L327.2 58.5L325 62.8L322.1 65.5L269.2 65.5L269.2 65.5L267 63.5L261.6 63.9L256.8 63L256.2 61.7L250.8 60.9L249.2 58.5L247.5 58.8L249.4 62.2L250.9 64.7L253.5 64.8L255.9 62.7L258.4 65.5L258.4 65.5L235.9 65.5L232.9 60.7L232 57.1L233 55.2L234 52.5L234.2 51.2L230.7 51.9L228 51.7L225.3 51.1L223.7 49.3L223.5 47.7L226.4 46.6L228.6 46.4L232.9 45.5L236.2 46.6L240 46L240.1 44.4L235.6 42.3L233.5 42L231.3 41.2L229.7 40.6L228 41.7L226.1 42.8L225.3 44.4L225.1 46L223.2 47.1L221 47.1L219.4 47.7L220.5 49.8L218.3 51.3L216.7 48.2L216.1 46L212.3 43.9L209.8 41.7L208.3 42.3L208.5 43.3L212.3 45.7L215 47.4L212.3 49.8L212 47.7L208 45.5L206.4 43.9L204.5 42.9L202 44.2L198.3 44.1L198.3 45.5L195.9 46.6L194.5 49L192.8 51.2L189.1 52L188.2 51.1L185.5 50.9Z M188.6 52.2L193.9 52.9L198.3 51.1L205.8 50.7L206.9 53.1L206 54.7L211.2 56L216.7 55.7L216.7 58L222.1 56.7L227.5 57.2L230 57.1L230.2 58.7L231.8 61.2L234.2 65.5L178.8 65.5L180.9 61.2L184.2 59L184.7 56.3L187.6 54.2Z M189 36.8L196.6 35.8L196.8 33.8L194.8 32.5L192.8 30.3L192.8 28.6L191.8 27.5L189.6 27.5L188.5 29.8L189.6 31.4L191.8 32L190.1 33.4L189.6 34.9L191.2 35.4Z M184.2 35L188.5 34.7L188.5 32L186.3 31.2L184.2 32.5Z M169 20L171.2 19L177.7 19.2L179.8 20.6L175.5 22.2L171.2 21.9Z M335.8 57.1L338 54.2L341.3 53.6L343.4 53.4L346.7 53.1L347.8 49.8L348.8 46.6L346.7 46.6L346.4 49.3L343.4 50.9L342.3 52.2L339.1 52.5L336.9 53.6L335.5 55.2Z M346.7 45.5L348.3 41.7L352.6 43.9L349.9 45.5L347.8 45.7Z M108.3 11.4L117 14.1L121.3 15.2L127.8 18.4L124.6 22.8L117 22.8L110.5 21.1L110.5 17.3L101.8 15.2L99.7 11.9Z M67.2 13L81.3 11.9L86.7 15.2L75.8 16.8L68.3 16.3Z M97.5 8.1L113.7 6.5L127.8 2.2L102.9 1.1L97.5 3.3Z',
-    label: [282, 37],
-  },
-  {
-    name: 'Centro',
-    risk: 'Atención',
-    score: 61,
-    color: '#e29a28',
-    path: 'M89.3 65.5L89.2 67.2L91 70.4L92.6 71.3L96.4 70.8L97 68.3L100.8 67.7L100.2 71L99.7 73.7L104 73.9L104.8 74.8L104.5 79.1L106.5 81.3L108.9 80.7L111 81.8L110.5 83.2L108.3 82.9L105.2 82.1L102.2 80.2L100.2 76.9L96.4 75.8L93.2 73.7L90.5 74L87.8 72.9L84.5 71.5L81 69.3L80.5 67.2L79 65.5L76.1 65.5L76.4 66.1L75.8 65.5Z M111.3 81.6L113.2 79.3L117.8 77.6L121.3 79.5L127.8 79.4L130 81.8L133.3 84.5L138.7 86.1L140.8 89.4L143 91.9L146.8 93.7L151.7 94L157.1 96.6L157.1 100.8L154.4 104L152.8 109.4L150.6 115.4L147.3 115.9L146.6 116.5L118.7 116.5L118.9 114.3L118.8 110.8L113.2 107.8L111 104L109.4 99.7L107 97.3L108.1 94.8L107.4 93.2L108.3 90.5L109.6 89.2L111.3 86.9L111 84.5Z M322.1 65.5L321.8 65.9L314.2 68.3L309.8 69.3L312.5 74.8L313.1 78L309.8 81.3L308.5 81.6L306.6 79.6L303.9 76.4L303.3 82.3L307.1 89.5L303.9 87.2L301.7 82.3L301.2 76.9L300.6 73.1L297.2 73.7L296.8 69.9L294.7 67.7L292.5 67.2L289.3 67.7L288.7 69.3L286.5 71L282.2 74.2L281.7 80.2L279 82.3L277.3 79.6L274.1 72.6L273.9 68.3L270.8 68.5L269.2 65.5L269.2 65.5L258.4 65.5L258.4 65.5L259.8 66.6L256.8 70.4L251.3 73.4L243.7 77.1L241.9 77.1L241.3 73.7L237.2 67.7L235.9 65.5Z M234.2 65.5L235.1 67.2L236.7 71.5L238.3 74.2L241.6 77.5L242.7 79.6L250.2 78.2L250.2 79.7L247 85.6L242.7 89.9L239.4 93.2L237.2 96.4L237.8 99.7L238.9 102.9L238.9 107.2L232.9 112.7L233.4 116.5L210.9 116.5L210.7 114.8L208 110L209.6 104L208.5 97.5L204.8 92.1L205.3 87.2L204.2 86.1L200.4 84.7L197.2 84.2L192.8 85.9L190.1 85.4L186.9 86.2L183.1 83.6L180.4 80.7L176.9 77.5L176.1 75.1L177.1 70.4L177.7 67.7L178.8 65.5Z M318 114.8L318.2 116.5L358.5 116.5L357.5 115.4L353.2 111.6L352.5 107.2L350.5 102.9L348.8 102.6L348.3 105.1L346.7 110L343.4 108.1L341.8 107L336.9 104L335.8 105.6L331.5 106.2L327.2 109.4L326.1 112.1L321.8 113.2Z M298.2 84.9L301.2 86.7L306.6 92.1L309.8 94.3L309.3 97.3L305.5 95.3L302.3 91Z M309.3 98L312 98L315.3 98L319 99.4L318.5 100.4L312 99.4L309.3 98.4Z M313.1 89.4L315.3 89L317.4 87.5L321.8 83.4L323.9 85.6L322.8 89.9L320.7 94.3L318.5 95.3L315.3 94.3L313.6 92.1Z M336.9 92.1L341.3 94.6L344.5 93.2L347.8 93.8L353.2 97L357.5 102.3L354.3 101.8L349.9 100.8L347.8 100.8L344.5 99.7L343.4 96.4L339.1 95.3Z M248.4 104L249.7 107.8L248.6 110.5L246.6 116.5L242.7 116.5L242.1 114.8L243.2 108.3L245.4 107.8L247 105.6Z M102.9 67.2L106.2 66L111.6 68.3L114.6 69.1L111.6 69.4L108.3 67.5L104 67.3Z M114.4 71.1L117 69.4L120.9 70.8L119.2 71.3L116.1 71.5Z M325 71L327.2 71.1L327.2 75.6L329.3 76.9L326.1 76.4L325 73.7Z',
-    label: [217, 87],
-  },
-  {
-    name: 'Sur',
-    risk: 'Crítico',
-    score: 82,
-    color: '#e21f3d',
-    path: 'M146.6 116.5L143 119.2L142.2 121.9L138.7 125.7L137.1 127.8L133.8 128.8L131.9 128L133 130.5L127.8 133.3L127.5 135.1L124.6 135.4L125.3 137.4L123.9 139.8L121.9 141.4L123.5 143L120.2 145.7L120.9 147.8L122.4 150.5L118.1 150.6L114.3 147.3L113.2 141.9L115.2 137.6L115.4 131.1L117.5 123.5L118.3 119.2L118.7 116.5Z M233.4 116.5L233.5 117L230.2 119.2L230.5 121.3L227.5 125.1L224.2 127.3L218.8 128L216.7 128.7L214.9 128L214.5 124.6L211.2 119.7L210.9 116.5Z M318.2 116.5L318.5 119.2L319.6 127.8L322.8 128.9L328.3 127.8L332.6 125.7L336.9 125.1L341.3 128.6L344.5 128.9L346.7 132.2L352.1 132.7L357.5 131.1L360.8 124.6L361.1 119.2L358.5 116.5Z M382.1 128.4L384 130.5L387.8 131.6L385.7 133.8L384.6 136L384 133.8L382.4 129.5Z M382.1 134.9L383.5 136.2L380.3 139.2L378.1 141.4L375.4 140.8L377 138.7L380.8 136Z M246.6 116.5L246.1 117.9L243.2 118.1L242.7 116.5Z',
-    label: [222, 122],
-  },
-];
+// ───────────── Mapa mundial por zonas ─────────────
+type ZoneStat = { score: number; servers: number; findings: number; urgent: number; source: 'criticidad' | 'estimado' };
 
-function WorldRiskMap({ region, onSelect }: { region: string; onSelect: (region: string) => void }) {
+// Peso de cada nivel de criticidad (0 = Baja ... 100 = Crítica); coincide con los colores del mapa
+const CRIT_WEIGHT: Record<string, number> = { baja: 0, media: 25, alta: 50, 'muy alta': 75, critica: 100 };
+const normName = (s: string) => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+// true: "count" son los hallazgos TOTALES del nivel (abiertos = count × (100 − % remediado)). false: ya son los abiertos.
+const COUNT_IS_TOTAL = true;
+
+function zoneRisk(r: { remediation: number; sla: number; criticality?: { name: string; value: number; count: number }[] }) {
+  const open = (r.criticality ?? [])
+    .filter((c) => normName(c.name) in CRIT_WEIGHT)
+    .map((c) => ({ key: normName(c.name), w: CRIT_WEIGHT[normName(c.name)], n: COUNT_IS_TOTAL ? (c.count * (100 - c.value)) / 100 : c.count }));
+  const total = open.reduce((a, x) => a + x.n, 0);
+  if (total > 0) {
+    return {
+      score: Math.round(open.reduce((a, x) => a + x.w * x.n, 0) / total),
+      urgent: Math.round(open.filter((x) => x.key === 'critica' || x.key === 'muy alta').reduce((a, x) => a + x.n, 0)),
+      source: 'criticidad' as const,
+    };
+  }
+  // Respaldo cuando no hay desglose por criticidad (datos de ejemplo)
+  const raw = ((100 - r.remediation) * 0.7 + (100 - r.sla) * 0.3 - 8) * 3.2;
+  return { score: Math.max(0, Math.min(100, Math.round(raw))), urgent: 0, source: 'estimado' as const };
+}
+
+const LEVELS = ['Baja', 'Media', 'Alta', 'Muy alta', 'Crítica'];
+const riskLabel = (score: number) => LEVELS[Math.min(4, Math.max(0, Math.round(score / 25)))];
+// Degradado continuo azul → verde → amarillo → naranja → rojo (como la imagen de referencia)
+const colorStops: [number, [number, number, number]][] = [
+  [0, [30, 144, 255]],
+  [25, [46, 204, 113]],
+  [50, [241, 220, 70]],
+  [75, [245, 150, 30]],
+  [100, [229, 38, 38]],
+];
+function riskColor(score: number) {
+  const s = Math.max(0, Math.min(100, score));
+  for (let i = 1; i < colorStops.length; i++) {
+    const [b, cb] = colorStops[i];
+    if (s <= b) {
+      const [a, ca] = colorStops[i - 1];
+      const t = (s - a) / (b - a);
+      const c = ca.map((v, k) => Math.round(v + (cb[k] - v) * t));
+      return `rgb(${c[0]}, ${c[1]}, ${c[2]})`;
+    }
+  }
+  return 'rgb(229, 38, 38)';
+}
+
+// Geometría: proyección equirectangular recortada de 84°N a 58°S (sin Antártida), igual que la referencia
+const MAP_W = 1000;
+const LAT_TOP = 84;
+const LAT_BOTTOM = -58;
+const MAP_H = Math.round((MAP_W * (LAT_TOP - LAT_BOTTOM)) / 360);
+const projection = geoEquirectangular().fitSize([MAP_W, MAP_H], {
+  type: 'MultiPoint',
+  coordinates: [[-180, LAT_TOP], [180, LAT_TOP], [180, LAT_BOTTOM], [-180, LAT_BOTTOM]],
+});
+const yOf = (lat: number) => projection([0, lat])?.[1] ?? 0;
+const off = (lat: number) => Math.min(1, Math.max(0, yOf(lat) / MAP_H));
+const worldTopology = worldData as unknown as Topology;
+const landPath = geoPath(projection)(feature(worldTopology, worldTopology.objects.land as GeometryCollection)) ?? '';
+
+// Zonas por latitud. Si tus regiones se definen distinto, ajusta aquí.
+const ZONES = [
+  { name: 'Norte', hi: LAT_TOP, lo: 23.5 },
+  { name: 'Centro', hi: 23.5, lo: -23.5 },
+  { name: 'Sur', hi: -23.5, lo: LAT_BOTTOM },
+];
+const zoneAt = (lat: number) => (lat > 23.5 ? 'Norte' : lat < -23.5 ? 'Sur' : 'Centro');
+const smooth = (t: number) => { const c = Math.max(0, Math.min(1, t)); return c * c * (3 - 2 * c); };
+function scoreAtLat(lat: number, s: Record<string, number>) {
+  const B = 8; // grados de transición entre regiones (menor = límite más marcado)
+  if (lat >= 23.5 + B) return s.Norte;
+  if (lat >= 23.5 - B) return s.Centro + (s.Norte - s.Centro) * smooth((lat - (23.5 - B)) / (2 * B));
+  if (lat >= -23.5 + B) return s.Centro;
+  if (lat >= -23.5 - B) return s.Sur + (s.Centro - s.Sur) * smooth((lat - (-23.5 - B)) / (2 * B));
+  return s.Sur;
+}
+
+// Velo suave que aclara todo lo que NO es la región seleccionada
+function dimStopsFor(zoneName: string): [number, number][] {
+  const z = ZONES.find((x) => x.name === zoneName);
+  if (!z) return [];
+  const f = 5;
+  const a = 0.62;
+  const topOpen = z.hi >= LAT_TOP;
+  const botOpen = z.lo <= LAT_BOTTOM;
+  return [
+    [0, topOpen ? 0 : a],
+    [off(Math.min(LAT_TOP, z.hi + f)), topOpen ? 0 : a],
+    [off(z.hi - f), 0],
+    [off(z.lo + f), 0],
+    [off(Math.max(LAT_BOTTOM, z.lo - f)), botOpen ? 0 : a],
+    [1, botOpen ? 0 : a],
+  ];
+}
+
+function WorldRiskMap({ region, stats, onSelect }: { region: string; stats: Record<string, ZoneStat>; onSelect: (zone: string) => void }) {
+  const [hover, setHover] = useState<{ zone: string; x: number; y: number; w: number } | null>(null);
+  const scores = { Norte: stats.Norte?.score ?? 50, Centro: stats.Centro?.score ?? 50, Sur: stats.Sur?.score ?? 50 };
+
+  const gradStops = Array.from({ length: 49 }, (_, i) => {
+    const lat = Math.max(LAT_BOTTOM, LAT_TOP - i * 3);
+    return { offset: off(lat), color: riskColor(scoreAtLat(lat, scores)) };
+  });
+  const dimStops = region !== 'Todas' ? dimStopsFor(region) : [];
+
+  const zoneFromEvent = (e: React.MouseEvent<SVGPathElement>) => {
+    const svg = e.currentTarget.ownerSVGElement;
+    const ctm = svg?.getScreenCTM();
+    if (!svg || !ctm) return null;
+    const pt = svg.createSVGPoint();
+    pt.x = e.clientX;
+    pt.y = e.clientY;
+    const p = pt.matrixTransform(ctm.inverse());
+    const lat = projection.invert?.([p.x, p.y])?.[1];
+    return lat === undefined ? null : zoneAt(lat);
+  };
+  const onMove = (e: React.MouseEvent<SVGPathElement>) => {
+    const zone = zoneFromEvent(e);
+    const stage = e.currentTarget.ownerSVGElement?.parentElement?.getBoundingClientRect();
+    if (zone && stage) setHover({ zone, x: e.clientX - stage.left, y: e.clientY - stage.top, w: stage.width });
+  };
+
+  const ranked = Object.entries(stats).sort((a, b) => b[1].score - a[1].score);
+  const hovered = hover ? stats[hover.zone] : undefined;
+
   return (
-    <div className="risk-map-layout">
-      <div className="map-stage">
-        <div className="map-grid" />
-        <svg viewBox="0 0 390 153" role="img" aria-label="Mapa mundial de riesgo por región">
-          {mapZones.map((zone) => (
-            <g
-              key={zone.name}
-              className={region !== 'Todas' && region !== zone.name ? 'muted' : ''}
-              onClick={() => onSelect(zone.name)}
-            >
-              <path d={zone.path} fill={zone.color} />
-              <text x={zone.label[0]} y={zone.label[1]} textAnchor="middle">{zone.name}</text>
-              <text className="map-score" x={zone.label[0]} y={zone.label[1] + 15} textAnchor="middle">{zone.score}/100</text>
-            </g>
-          ))}
+    <div className="geo-layout">
+      <div className="geo-stage">
+        <svg viewBox={`0 0 ${MAP_W} ${MAP_H}`} preserveAspectRatio="xMidYMid meet" role="img" aria-label="Mapa mundial de riesgo por región">
+          <defs>
+            <linearGradient id="geo-risk" gradientUnits="userSpaceOnUse" x1="0" y1="0" x2="0" y2={MAP_H}>
+              {gradStops.map((s, i) => <stop key={i} offset={s.offset} stopColor={s.color} />)}
+            </linearGradient>
+            <linearGradient id="geo-dim" x1="0" y1="0" x2="0" y2="1">
+              {dimStops.map(([o, a], i) => <stop key={i} className="geo-dim-stop" offset={o} stopOpacity={a} />)}
+            </linearGradient>
+          </defs>
+          <path
+            className="geo-land"
+            d={landPath}
+            fill="url(#geo-risk)"
+            onMouseMove={onMove}
+            onMouseLeave={() => setHover(null)}
+            onClick={(e) => { const zone = zoneFromEvent(e); if (zone) onSelect(zone); }}
+          />
+          {dimStops.length > 0 && <path d={landPath} fill="url(#geo-dim)" pointerEvents="none" />}
         </svg>
+        <div className="geo-legend">
+          <div className="geo-legend-scale"><i className="geo-legend-bar" /><div>{LEVELS.map((l) => <span key={l}>{l}</span>)}</div></div>
+          <small>Criticidad de hallazgos abiertos</small>
+        </div>
+        {hover && (
+          <div className="geo-tooltip" style={{ left: hover.x, top: hover.y, transform: hover.x > hover.w * 0.62 ? 'translate(calc(-100% - 12px), 12px)' : 'translate(12px, 12px)' }}>
+            <b>Región {hover.zone}</b>
+            <span>{hovered ? `Criticidad ${riskLabel(hovered.score)} · ${hovered.score}/100` : 'Sin datos'}</span>
+            {hovered && <span>{hovered.source === 'criticidad' ? `${hovered.urgent.toLocaleString('es-MX')} abiertos críticos y muy altos` : 'Estimado por remediación y SLA'}</span>}
+          </div>
+        )}
       </div>
-      <div className="zone-list">
-        {mapZones.map((zone) => (
-          <button key={zone.name} className={`zone-${zone.name.toLowerCase()} ${region === zone.name ? 'active' : ''}`} onClick={() => onSelect(zone.name)} aria-label={`Abrir detalle de la región ${zone.name}`}>
-            <i style={{ background: zone.color }} />
-            <span><b>{zone.name}</b><small>{zone.risk}</small></span>
-            <strong>{zone.score}</strong>
-            <Icon name="chevron" size={15} />
+      <div className="country-list">
+        <p>RIESGO POR REGIÓN</p>
+        {ranked.map(([zone, s]) => (
+          <button key={zone} className={region === zone ? 'active' : ''} onClick={() => onSelect(zone)} aria-label={`Abrir detalle de región ${zone}`}>
+            <i style={{ background: riskColor(s.score) }} />
+            <span><b>Región {zone}</b><small>{riskLabel(s.score)} · {s.servers} servidores</small></span>
+            <strong>{s.score}</strong>
           </button>
         ))}
       </div>
@@ -207,17 +328,38 @@ function WorldRiskMap({ region, onSelect }: { region: string; onSelect: (region:
   );
 }
 
-type ServerItem = typeof mockServers[number];
+// ───────────── Servidores y filtros ─────────────
+type ServerItem = { id: string; os: string; region: string; country?: string; role: string; risk: string; findings: number; status: string; last: string };
 type AlertItem = typeof mockAlerts[number];
 
-function ServerTable({ servers, region, query, onSelect }: { servers: ServerItem[]; region: string; query: string; onSelect: (server: ServerItem) => void }) {
-  const filtered = servers.filter((server) => (region === 'Todas' || server.region === region) && `${server.id} ${server.os} ${server.role}`.toLowerCase().includes(query.toLowerCase()));
+type ServerFilters = { server: string; os: string; risk: string; status: string; minFindings: string; maxFindings: string };
+const emptyFilters: ServerFilters = { server: '', os: '', risk: '', status: '', minFindings: '', maxFindings: '' };
+const riskOrder = ['Crítico', 'Muy alto', 'Alto', 'Medio', 'Bajo'];
+
+function applyServerFilters(servers: ServerItem[], region: string, query: string, f: ServerFilters) {
+  const q = query.trim().toLowerCase();
+  const srv = f.server.trim().toLowerCase();
+  const st = f.status.trim().toLowerCase();
+  const min = f.minFindings === '' ? -Infinity : Number(f.minFindings);
+  const max = f.maxFindings === '' ? Infinity : Number(f.maxFindings);
+  return servers.filter((s) =>
+    (region === 'Todas' || s.region === region) &&
+    (!q || `${s.id} ${s.os} ${s.role}`.toLowerCase().includes(q)) &&
+    (!srv || `${s.id} ${s.role}`.toLowerCase().includes(srv)) &&
+    (!f.os || s.os === f.os) &&
+    (!f.risk || s.risk === f.risk) &&
+    (!st || String(s.status).toLowerCase().includes(st)) &&
+    s.findings >= min && s.findings <= max,
+  );
+}
+
+function ServerTable({ servers, onSelect }: { servers: ServerItem[]; onSelect: (server: ServerItem) => void }) {
   return (
     <div className="table-wrap">
       <table>
         <thead><tr><th>Servidor</th><th>Sistema operativo</th><th>Región</th><th>Riesgo</th><th>Hallazgos</th><th>Estado</th><th /></tr></thead>
         <tbody>
-          {filtered.map((server) => (
+          {servers.map((server) => (
             <tr key={server.id} onClick={() => onSelect(server)}>
               <td><div className="server-cell"><span><Icon name="server" size={16} /></span><div><b>{server.id}</b><small>{server.role}</small></div></div></td>
               <td>{server.os}</td><td>{server.region}</td>
@@ -228,7 +370,7 @@ function ServerTable({ servers, region, query, onSelect }: { servers: ServerItem
           ))}
         </tbody>
       </table>
-      {!filtered.length && <div className="empty-state">No hay servidores que coincidan con la búsqueda.</div>}
+      {!servers.length && <div className="empty-state">No hay servidores que coincidan con los filtros.</div>}
     </div>
   );
 }
@@ -238,6 +380,8 @@ export default function App() {
   const regions = live?.regions ?? mockRegions;
   const servers = live?.servers ?? mockServers;
   const alerts = live?.alerts ?? mockAlerts;
+  const [filters, setFilters] = useState<ServerFilters>(emptyFilters);
+  const [filtersOpen, setFiltersOpen] = useState(false);
   const [active, setActive] = useState('resumen');
   const [region, setRegion] = useState('Todas');
   const [period, setPeriod] = useState('30 días');
@@ -263,9 +407,53 @@ export default function App() {
     maintenanceDay: 'Sábado',
     maintenanceTime: '02:00',
   });
-  const data = regions[region as keyof typeof regions];
+  const data = regions[region as keyof typeof regions] ?? regions.Todas;
   const filteredAlerts = alertFilter === 'Todas' ? alerts : alerts.filter((alert) => alert.category === alertFilter);
 
+ const zoneStats = useMemo(() => {
+  const out: Record<string, ZoneStat> = {};
+  ['Norte', 'Centro', 'Sur'].forEach((zone) => {
+    const r = regions[zone as keyof typeof regions];
+    if (r) out[zone] = { ...zoneRisk(r), servers: r.servers, findings: r.findings };
+  });
+  return out;
+}, [regions]);
+const topRiskRegion = Object.entries(zoneStats).sort((a, b) => b[1].score - a[1].score)[0]?.[0] ?? 'Todas';
+const topRiskScore = zoneStats[topRiskRegion]?.score ?? 82;
+
+const osOptions = useMemo(() => [...new Set(servers.map((s) => s.os))].sort(), [servers]);
+const riskOptions = useMemo(() => [...new Set(servers.map((s) => s.risk))].sort((a, b) => riskOrder.indexOf(a) - riskOrder.indexOf(b)), [servers]);
+const statusOptions = useMemo(() => [...new Set(servers.map((s) => String(s.status)))].sort().slice(0, 50), [servers]);
+
+const visibleServers = applyServerFilters(servers, region, query, filters);
+const setFilter = (key: keyof ServerFilters, value: string) => setFilters((prev) => ({ ...prev, [key]: value }));
+const clearFilters = () => { setFilters(emptyFilters); setRegion('Todas'); setQuery(''); };
+const activeFilterLabels = [
+  region !== 'Todas' && `Región: ${region}`,
+  query && `Búsqueda: ${query}`,
+  filters.server && `Servidor: ${filters.server}`,
+  filters.os && `Sistema operativo: ${filters.os}`,
+  filters.risk && `Riesgo: ${filters.risk}`,
+  (filters.minFindings || filters.maxFindings) && `Hallazgos: ${filters.minFindings || 0} a ${filters.maxFindings || '∞'}`,
+  filters.status && `Estado: ${filters.status}`,
+].filter(Boolean) as string[];
+const activeFilterCount = activeFilterLabels.length;
+
+const handleExportPdf = async () => {
+  try {
+    const { exportReportPdf } = await import('./reportPdf');
+    exportReportPdf({
+      scope: region,
+      metrics: { remediation: data.remediation, sla: data.sla, reopened: data.reopened, obsolete: data.obsolete, exposed: data.exposed, servers: data.servers, findings: data.findings },
+      servers: visibleServers,
+      alerts: alerts.filter((a) => region === 'Todas' || a.region === region),
+      filters: activeFilterLabels,
+    });
+  } catch (error) {
+    console.error(error);
+    window.alert('No se pudo generar el PDF. Revisa la consola para más detalle.');
+  }
+};
   const live_ = data as Partial<RegionData>;
   const criticality = useMemo(() => live_.criticality ?? [
     { name: 'Crítica', value: Math.round(data.remediation - 12), count: 18, tone: 'critical' },
@@ -356,7 +544,7 @@ export default function App() {
             <div><p className="eyebrow">CENTRO DE OPERACIONES</p><h1>{pageTitle}</h1><span>Visibilidad y control del ciclo de remediación de infraestructura.</span></div>
             {!['configuracion', 'historial'].includes(active) && <div className="heading-actions">
               <label className="select-control"><span>Región</span><select value={region} onChange={(e) => setRegion(e.target.value)}>{Object.keys(regions).map((r) => <option key={r}>{r}</option>)}</select></label>
-              <button className="secondary-button" onClick={() => window.open(exportUrl(region), '_blank')}><Icon name="download" size={17} /> Exportar</button>
+              <button className="secondary-button" onClick={handleExportPdf}><Icon name="download" size={17} /> Exportar PDF</button>
               <button className="primary-button" onClick={() => setActive('servidores')}>Ver servidores <Icon name="arrow" size={17} /></button>
             </div>}
           </div>
@@ -366,8 +554,8 @@ export default function App() {
               <section className="risk-command">
                 <div className="command-pulse"><span><Icon name="alert" size={21} /></span><i /><i /><i /></div>
                 <div className="command-copy"><p>RIESGO PRIORITARIO</p><h2>{live?.urgentes ?? 7} activos críticos requieren intervención</h2></div>
-                <div className="command-stat"><small>Índice de riesgo</small><strong>82</strong><span>/100</span></div>
-                <button onClick={() => { setRegion('Sur'); setActive('servidores'); }}>Investigar ahora <Icon name="arrow" size={17} /></button>
+                <div className="command-stat"><small>Índice de riesgo</small><strong>{topRiskScore}</strong><span>/100</span></div>
+                <button onClick={() => { setRegion(topRiskRegion); setActive('servidores'); }}>Investigar ahora <Icon name="arrow" size={17} /></button>
               </section>
 
               <section className="metrics-grid">
@@ -381,10 +569,9 @@ export default function App() {
               <section className="map-import-grid">
                 <article className="panel-card map-panel">
                   <div className="panel-header">
-                    <div><p className="eyebrow">INTELIGENCIA GEOGRÁFICA</p><h2>Mapa de exposición crítica</h2><span>Selecciona una zona para actualizar el dashboard.</span></div>
-                    <div className="risk-scale"><span>Bajo</span><i /><i /><i /><span>Crítico</span></div>
+                    <div><p className="eyebrow">INTELIGENCIA GEOGRÁFICA</p><h2>Mapa de exposición crítica</h2><span>Selecciona una región para actualizar el dashboard.</span></div>
                   </div>
-                  <WorldRiskMap region={region} onSelect={(selectedRegion) => { setRegion(selectedRegion); setActive('detalle-region'); }} />
+                  <WorldRiskMap region={region} stats={zoneStats} onSelect={(zone) => { setRegion(zone); setActive('detalle-region'); }} />
                 </article>
 
                 <article className="csv-panel">
@@ -493,17 +680,53 @@ export default function App() {
 
               <section className="panel-card full-panel regional-table">
                 <div className="panel-header table-header"><div><p className="eyebrow">ACTIVOS PRIORITARIOS</p><h2>Servidores de la región {region}</h2><span>Ordenados por cantidad de hallazgos abiertos.</span></div><div className="table-actions"><label className="inline-search"><Icon name="search" size={16} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar servidor" /></label><button className="secondary-button" onClick={() => setActive('servidores')}>Ver inventario completo <Icon name="arrow" size={15} /></button></div></div>
-                <ServerTable servers={servers} region={region} query={query} onSelect={(server) => { setPlanOpen(false); setSelectedServer(server); }} />
+                <ServerTable servers={applyServerFilters(servers, region, query, emptyFilters)} onSelect={(server) => { setPlanOpen(false); setSelectedServer(server); }} />
               </section>
             </>
           )}
 
-          {active === 'servidores' && (
-            <section className="panel-card full-panel">
-              <div className="panel-header table-header"><div><p className="eyebrow">INVENTARIO</p><h2>Servidores con hallazgos abiertos</h2><span>{data.servers} activos en la selección actual</span></div><div className="table-actions"><label className="inline-search"><Icon name="search" size={16} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar en inventario" /></label><button className="secondary-button"><Icon name="filter" size={16} /> Filtros</button></div></div>
-              <ServerTable servers={servers} region={region} query={query} onSelect={(server) => { setPlanOpen(false); setSelectedServer(server); }} />
-            </section>
-          )}
+         {active === 'servidores' && (
+  <section className="panel-card full-panel">
+    <div className="panel-header table-header">
+      <div>
+        <p className="eyebrow">INVENTARIO</p><h2>Servidores con hallazgos abiertos</h2>
+        <span>{visibleServers.length} de {servers.length} servidores · {data.servers} activos en {region === 'Todas' ? 'todas las regiones' : `región ${region}`}</span>
+      </div>
+      <div className="table-actions">
+        <label className="inline-search"><Icon name="search" size={16} /><input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Buscar en inventario" /></label>
+        <button className="secondary-button" onClick={() => setFiltersOpen(!filtersOpen)} aria-expanded={filtersOpen}>
+          <Icon name="filter" size={16} /> Filtros{activeFilterCount > 0 && <span className="filter-count">{activeFilterCount}</span>}
+        </button>
+      </div>
+    </div>
+    {filtersOpen && (
+      <div className="filter-panel">
+        <label><span>Servidor</span><input value={filters.server} onChange={(e) => setFilter('server', e.target.value)} placeholder="ID o rol" /></label>
+        <label><span>Sistema operativo</span>
+          <select value={filters.os} onChange={(e) => setFilter('os', e.target.value)}><option value="">Todos</option>{osOptions.map((os) => <option key={os} value={os}>{os}</option>)}</select>
+        </label>
+        <label><span>Región</span>
+          <select value={region} onChange={(e) => setRegion(e.target.value)}>{Object.keys(regions).map((r) => <option key={r} value={r}>{r}</option>)}</select>
+        </label>
+        <label><span>Riesgo</span>
+          <select value={filters.risk} onChange={(e) => setFilter('risk', e.target.value)}><option value="">Todos</option>{riskOptions.map((r) => <option key={r} value={r}>{r}</option>)}</select>
+        </label>
+        <label><span>Hallazgos</span>
+          <div className="filter-range">
+            <input type="number" min={0} value={filters.minFindings} onChange={(e) => setFilter('minFindings', e.target.value)} placeholder="Mín." />
+            <input type="number" min={0} value={filters.maxFindings} onChange={(e) => setFilter('maxFindings', e.target.value)} placeholder="Máx." />
+          </div>
+        </label>
+        <label><span>Estado</span>
+          <input list="status-options" value={filters.status} onChange={(e) => setFilter('status', e.target.value)} placeholder="Ej. Reabierto" />
+          <datalist id="status-options">{statusOptions.map((s) => <option key={s} value={s} />)}</datalist>
+        </label>
+        <div className="filter-actions"><button className="secondary-button" onClick={clearFilters}>Limpiar filtros</button></div>
+      </div>
+    )}
+    <ServerTable servers={visibleServers} onSelect={(server) => { setPlanOpen(false); setSelectedServer(server); }} />
+  </section>
+)}
 
           {active === 'cumplimiento' && (
             <section className="compliance-layout">

@@ -4,7 +4,6 @@
 export const API_BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? 'http://localhost:8000';
 const API = `${API_BASE}/api/v1`;
 
-// El diseño usa Todas / Norte / Centro / Sur; el back end usa TODOS / REGION_NORTH / REGION_CENTRAL / REGION_SOUTH
 export const REGION_API: Record<string, string> = { Todas: 'TODOS', Norte: 'REGION_NORTH', Centro: 'REGION_CENTRAL', Sur: 'REGION_SOUTH' };
 export const REGION_UI: Record<string, string> = { TODOS: 'Todas', REGION_NORTH: 'Norte', REGION_CENTRAL: 'Centro', REGION_SOUTH: 'Sur' };
 
@@ -56,7 +55,6 @@ function adaptarAlerta(a: AlertaApi): AlertRow {
   };
 }
 
-// ---------- Carga todo lo que necesita el diseño ----------
 export async function loadLiveData(): Promise<LiveData> {
   const regionesApi = Object.entries(REGION_API); // [Todas, TODOS], [Norte, REGION_NORTH] ...
   const [resumenes, detalles, prioridad, alertas] = await Promise.all([

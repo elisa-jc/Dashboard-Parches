@@ -375,6 +375,42 @@ function ServerTable({ servers, onSelect }: { servers: ServerItem[]; onSelect: (
   );
 }
 
+// Convierte el mapa que se ve en pantalla en una imagen PNG para incrustarla en el PDF
+async function captureMapPng(): Promise<{ dataUrl: string; width: number; height: number } | undefined> {
+  const svg = document.querySelector('.geo-stage svg') as SVGSVGElement | null;
+  if (!svg) return undefined;
+  const clone = svg.cloneNode(true) as SVGSVGElement;
+  clone.querySelector('path[fill="url(#geo-dim)"]')?.remove(); // sin velo de "región seleccionada"
+  const land = clone.querySelector('.geo-land');
+  land?.setAttribute('stroke', 'rgba(255,255,255,0.55)');
+  land?.setAttribute('stroke-width', '0.6');
+  const vb = svg.viewBox.baseVal;
+  const scale = 2;
+  const width = Math.round(vb.width * scale);
+  const height = Math.round(vb.height * scale);
+  clone.setAttribute('xmlns', 'http://www.w3.org/2000/svg');
+  clone.setAttribute('width', String(width));
+  clone.setAttribute('height', String(height));
+  const url = URL.createObjectURL(new Blob([new XMLSerializer().serializeToString(clone)], { type: 'image/svg+xml;charset=utf-8' }));
+  try {
+    const img = new Image();
+    await new Promise<void>((resolve, reject) => { img.onload = () => resolve(); img.onerror = () => reject(new Error('No se pudo cargar el mapa')); img.src = url; });
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return undefined;
+    ctx.fillStyle = '#bdf3f7';
+    ctx.fillRect(0, 0, width, height);
+    ctx.drawImage(img, 0, 0, width, height);
+    return { dataUrl: canvas.toDataURL('image/png'), width, height };
+  } catch {
+    return undefined;
+  } finally {
+    URL.revokeObjectURL(url);
+  }
+}
+
 export default function App() {
   const { data: live, status } = useBackendData();
   const regions = live?.regions ?? mockRegions;
@@ -454,6 +490,34 @@ const handleExportPdf = async () => {
     window.alert('No se pudo generar el PDF. Revisa la consola para más detalle.');
   }
 };
+
+const parseRiskLabel = (score: number) => riskLabel(score);
+
+const handleExportExecutive = async () => {
+  try {
+    const [{ exportExecutivePdf }, map] = await Promise.all([import('./reportPdf'), captureMapPng()]);
+    exportExecutivePdf({
+      scope: region,
+      metrics: { remediation: data.remediation, sla: data.sla, reopened: data.reopened, obsolete: data.obsolete, exposed: data.exposed, servers: data.servers, findings: data.findings },
+      inProcess: live_.inProcess,
+      criticality: criticality.map(({ name, value, count }) => ({ name, value, count })),
+      platforms: live_.platforms ?? [],
+      regionsCompare: Object.entries(regions).map(([name, r]) => ({ name, remediation: r.remediation, sla: r.sla, servers: r.servers, findings: r.findings })),
+      zones: Object.entries(zoneStats)
+        .map(([name, z]) => ({ name, score: z.score, label: parseRiskLabel(z.score), servers: z.servers }))
+        .sort((a, b) => b.score - a.score),
+      map,
+      alerts: alerts.filter((a) => region === 'Todas' || a.region === region).slice(0, 10),
+    });
+  } catch (error) {
+    console.error(error);
+    window.alert('No se pudo generar el resumen ejecutivo. Revisa la consola para más detalle.');
+  }
+};
+
+// En Resumen exporta el resumen ejecutivo; en las demás pestañas, el reporte técnico
+const handleExport = () => (active === 'resumen' ? handleExportExecutive() : handleExportPdf());
+
   const live_ = data as Partial<RegionData>;
   const criticality = useMemo(() => live_.criticality ?? [
     { name: 'Crítica', value: Math.round(data.remediation - 12), count: 18, tone: 'critical' },
@@ -544,7 +608,7 @@ const handleExportPdf = async () => {
             <div><p className="eyebrow">CENTRO DE OPERACIONES</p><h1>{pageTitle}</h1><span>Visibilidad y control del ciclo de remediación de infraestructura.</span></div>
             {!['configuracion', 'historial'].includes(active) && <div className="heading-actions">
               <label className="select-control"><span>Región</span><select value={region} onChange={(e) => setRegion(e.target.value)}>{Object.keys(regions).map((r) => <option key={r}>{r}</option>)}</select></label>
-              <button className="secondary-button" onClick={handleExportPdf}><Icon name="download" size={17} /> Exportar PDF</button>
+              <button className="secondary-button" onClick={handleExport}><Icon name="download" size={17} /> {active === 'resumen' ? 'Exportar resumen' : 'Exportar reporte'}</button>
               <button className="primary-button" onClick={() => setActive('servidores')}>Ver servidores <Icon name="arrow" size={17} /></button>
             </div>}
           </div>

@@ -3,7 +3,7 @@ import { geoEquirectangular, geoPath } from 'd3-geo';
 import { feature } from 'topojson-client';
 import type { Topology, GeometryCollection } from 'topojson-specification';
 import worldData from 'world-atlas/countries-110m.json';
-import type { RegionData } from './api';
+import { uploadDatasetFile, type RegionData } from './api';
 import { useBackendData } from './useBackendData';
 
 type IconName =
@@ -412,7 +412,7 @@ async function captureMapPng(): Promise<{ dataUrl: string; width: number; height
 }
 
 export default function App() {
-  const { data: live, status } = useBackendData();
+  const { data: live, status, refresh: refreshLive } = useBackendData();
   const regions = live?.regions ?? mockRegions;
   const servers = live?.servers ?? mockServers;
   const alerts = live?.alerts ?? mockAlerts;
@@ -429,6 +429,8 @@ export default function App() {
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [csvFile, setCsvFile] = useState<{ name: string; rows: number } | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const [uploadMessage, setUploadMessage] = useState<string | null>(null);
   const [darkMode, setDarkMode] = useState(() => typeof window !== 'undefined' && window.localStorage.getItem('femsa-theme') === 'dark');
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
@@ -541,14 +543,27 @@ const handleExport = () => (active === 'resumen' ? handleExportExecutive() : han
     window.localStorage.setItem('femsa-theme', darkMode ? 'dark' : 'light');
     document.documentElement.style.colorScheme = darkMode ? 'dark' : 'light';
   }, [darkMode]);
-  const importCsv = (file?: File) => {
+  const importCsv = async (file?: File) => {
     if (!file) return;
-    const reader = new FileReader();
-    reader.onload = () => {
-      const rows = String(reader.result).split(/\r?\n/).filter((line) => line.trim()).length;
-      setCsvFile({ name: file.name, rows: Math.max(0, rows - 1) });
-    };
-    reader.readAsText(file);
+    setUploading(true);
+    setUploadMessage('Preprocesando y limpiando datos...');
+    try {
+      const res = await uploadDatasetFile(file);
+      setCsvFile({
+        name: file.name,
+        rows: res.filas ?? res.vulnerabilidades ?? res.servidores ?? 0,
+      });
+      setUploadMessage(
+        res.tipo === 'excel_completo'
+          ? `¡Listo! ${res.servidores} servidores y ${res.vulnerabilidades} vulnerabilidades limpiadas.`
+          : `¡Listo! ${res.filas} filas procesadas y limpiadas.`
+      );
+      await refreshLive();
+    } catch (e: any) {
+      setUploadMessage(`Error: ${e.message}`);
+    } finally {
+      setUploading(false);
+    }
   };
 
   return (
@@ -639,26 +654,41 @@ const handleExport = () => (active === 'resumen' ? handleExportExecutive() : han
                 </article>
 
                 <article className="csv-panel">
-                  <div className="csv-top"><span><Icon name="upload" size={22} /></span><div><h2>Cargar datos CSV</h2></div></div>
-                  <p className="csv-description">Actualiza el inventario y los hallazgos con una exportación de tu plataforma de seguridad.</p>
+                  <div className="csv-top"><span><Icon name="upload" size={22} /></span><div><h2>Cargar datos (Excel o CSV)</h2></div></div>
+                  <p className="csv-description">Actualiza el inventario y hallazgos. Se aplicará preprocesamiento y limpieza automática.</p>
                   <label className={`drop-zone ${csvFile ? 'loaded' : ''}`}>
-                    <input type="file" accept=".csv,text/csv" onChange={(event) => importCsv(event.target.files?.[0])} />
-                    {csvFile ? (
+                    <input
+                      type="file"
+                      accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                      disabled={uploading}
+                      onChange={(event) => importCsv(event.target.files?.[0])}
+                    />
+                    {uploading ? (
+                      <>
+                        <span><Icon name="clock" size={20} /></span>
+                        <strong>Limpiando y procesando datos...</strong>
+                        <b>Espera un momento</b>
+                      </>
+                    ) : csvFile ? (
                       <>
                         <span className="file-success"><Icon name="check" size={20} /></span>
                         <strong>{csvFile.name}</strong>
-                        <small>{csvFile.rows.toLocaleString('es-MX')} registros detectados</small>
-                        <b>Archivo listo para procesar</b>
+                        <small>{uploadMessage ?? `${csvFile.rows.toLocaleString('es-MX')} registros procesados`}</small>
+                        <b>Datos actualizados en vivo</b>
                       </>
                     ) : (
                       <>
                         <span><Icon name="upload" size={20} /></span>
-                        <strong>Arrastra tu CSV aquí</strong>
-                        <b>Máximo 25 MB</b>
+                        <strong>Arrastra tu Excel (.xlsx) o CSV aquí</strong>
+                        <b>Limpieza y normalización automática</b>
                       </>
                     )}
                   </label>
-                  <div className="csv-footer"><Icon name="shield" size={15} /><span>Procesamiento seguro en el navegador</span>{csvFile && <button onClick={() => setCsvFile(null)}>Quitar</button>}</div>
+                  <div className="csv-footer">
+                    <Icon name="shield" size={15} />
+                    <span>Preprocesamiento y validación automática en Backend</span>
+                    {csvFile && <button onClick={() => { setCsvFile(null); setUploadMessage(null); }}>Quitar</button>}
+                  </div>
                 </article>
               </section>
 

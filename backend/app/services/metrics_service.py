@@ -29,6 +29,7 @@ import numpy as np
 import pandas as pd
 
 from app.repositories.base import BaseRepository
+from app.services.preprocesamiento import preprocesar_excel, preprocesar_csv_unico
 
 
 # ----------------------------------------------------------------------
@@ -194,47 +195,68 @@ class MetricsService:
         return f.isoformat(timespec="seconds") if f else None
 
     # ------------------------------------------------------------------
-    # Carga de CSV desde el frontend (NUEVO)
+    # Carga de datos con Preprocesamiento Integrado (NUEVO)
     # ------------------------------------------------------------------
     def cargar_csv(self, tipo: str, contenido: bytes) -> dict:
-        try:
-            df = pd.read_csv(io.BytesIO(contenido), encoding="utf-8-sig")
-        except Exception as e:  # archivo vacío, no es CSV, etc.
-            raise ValueError(f"No se pudo leer el CSV: {e}")
-        df = _normalizar_columnas(df)
-
-        requeridas = REQ_SRV if tipo == "servidores" else REQ_VUL
-        llave = "serverid" if tipo == "servidores" else "findingid"
-        faltan = sorted(requeridas - set(df.columns))
-        if faltan:
-            raise ValueError(f"Al CSV de {tipo} le faltan columnas: {faltan}")
-        if df.empty:
-            raise ValueError("El CSV no tiene filas.")
-        if df[llave].duplicated().any():
-            raise ValueError(f"Hay {int(df[llave].duplicated().sum())} {llave} duplicados.")
-
-        advertencias = []
+        ids_servidores = None
         if tipo == "vulnerabilidades":
-            ids = set(self.repo.get_servidores()["serverid"])
-            huerfanos = set(df["serverid"]) - ids
-            if huerfanos:
-                raise ValueError(f"{len(huerfanos)} serverid no existen en la tabla de servidores "
-                                 f"(ej. {sorted(huerfanos)[:3]}). Sube primero los servidores.")
-        else:
             try:
-                usados = set(self.repo.get_vulnerabilidades()["serverid"])
-                sin_srv = usados - set(df["serverid"])
-                if sin_srv:
-                    advertencias.append(f"{len(sin_srv)} servidores con hallazgos ya no están en "
-                                        f"el archivo nuevo; sube también las vulnerabilidades.")
-            except FileNotFoundError:
+                ids_servidores = set(self.repo.get_servidores()["serverid"])
+            except Exception:
                 pass
 
+        df, _, resumen = preprocesar_csv_unico(contenido, tipo=tipo, servidores_ids=ids_servidores)
         self.repo.guardar(tipo, df)
         foto = self._snapshot(f"carga_{tipo}")
-        return {"ok": True, "tipo": tipo, "filas": len(df), "columnas": len(df.columns),
-                "advertencias": advertencias, "kpis": foto["kpis"],
-                "actualizado_en": self._actualizado_en()}
+        return {
+            "ok": True,
+            "tipo": tipo,
+            "filas": len(df),
+            "columnas": len(df.columns),
+            "resumen_preprocesamiento": resumen,
+            "kpis": foto["kpis"],
+            "actualizado_en": self._actualizado_en(),
+        }
+
+    def cargar_archivo_auto(self, nombre_archivo: str, contenido: bytes) -> dict:
+        """Procesa y limpia automáticamente archivos Excel (.xlsx/.xls) o CSV."""
+        nombre_lower = nombre_archivo.lower()
+        if nombre_lower.endswith((".xlsx", ".xls")):
+            df_s, df_v, resumen = preprocesar_excel(contenido)
+            self.repo.guardar("servidores", df_s)
+            self.repo.guardar("vulnerabilidades", df_v)
+            foto = self._snapshot("carga_excel_completa")
+            return {
+                "ok": True,
+                "tipo": "excel_completo",
+                "archivo": nombre_archivo,
+                "servidores": len(df_s),
+                "vulnerabilidades": len(df_v),
+                "resumen_preprocesamiento": resumen,
+                "kpis": foto["kpis"],
+                "actualizado_en": self._actualizado_en(),
+            }
+        elif nombre_lower.endswith(".csv"):
+            ids_servidores = None
+            try:
+                ids_servidores = set(self.repo.get_servidores()["serverid"])
+            except Exception:
+                pass
+            df, tipo_detectado, resumen = preprocesar_csv_unico(contenido, servidores_ids=ids_servidores)
+            self.repo.guardar(tipo_detectado, df)
+            foto = self._snapshot(f"carga_{tipo_detectado}")
+            return {
+                "ok": True,
+                "tipo": tipo_detectado,
+                "archivo": nombre_archivo,
+                "filas": len(df),
+                "columnas": len(df.columns),
+                "resumen_preprocesamiento": resumen,
+                "kpis": foto["kpis"],
+                "actualizado_en": self._actualizado_en(),
+            }
+        else:
+            raise ValueError(f"Formato no compatible: '{nombre_archivo}'. Sube un archivo .csv o .xlsx.")
 
     # ------------------------------------------------------------------
     # Carga y unión de datos

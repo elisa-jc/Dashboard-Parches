@@ -5,6 +5,7 @@ from pathlib import Path
 import pandas as pd
 
 from app.repositories.base import BaseRepository
+from app.services.preprocesamiento import asegurar_tablas_limpias
 
 # Raíz del proyecto (carpeta que contiene "backend/" y "tablas_limpias/")
 RAIZ = Path(__file__).resolve().parents[3]
@@ -23,6 +24,8 @@ class CSVRepository(BaseRepository):
         self.servidores_path = self.data_dir / "tabla1_s_clean.csv"
         self.vulnerabilidades_path = self.data_dir / "tabla2_v_clean.csv"
         self._cache: dict[Path, pd.DataFrame] = {}
+        # Preprocesamiento automático si faltan las tablas limpias
+        asegurar_tablas_limpias(self.data_dir, RAIZ)
 
     def _leer(self, ruta: Path) -> pd.DataFrame:
         if ruta not in self._cache:

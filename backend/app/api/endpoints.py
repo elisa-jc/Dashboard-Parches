@@ -108,12 +108,20 @@ def exportar_prioridad(region: Region = Query("TODOS"), s: MetricsService = Depe
     )
 
 
-# ---------------------- NUEVO: carga de datos ----------------------
+# ---------------------- NUEVO: carga de datos con preprocesamiento ----------------------
+@router.post("/cargar")
+async def cargar_archivo(archivo: UploadFile = File(...),
+                         s: MetricsService = Depends(get_service)):
+    """Sube un archivo (Excel .xlsx con 2 pestañas o CSV individual).
+    Aplica automáticamente la limpieza y preprocesamiento de datos."""
+    return s.cargar_archivo_auto(archivo.filename, await archivo.read())
+
+
 @router.post("/cargar/{tipo}")
 async def cargar_csv(tipo: TipoCSV, archivo: UploadFile = File(...),
                      s: MetricsService = Depends(get_service)):
     """Sube un CSV (multipart/form-data, campo 'archivo') y reemplaza la tabla.
-    Orden recomendado: primero /cargar/servidores, luego /cargar/vulnerabilidades."""
+    Aplica automáticamente la limpieza y preprocesamiento de datos."""
     if not archivo.filename.lower().endswith(".csv"):
         raise ValueError("El archivo debe ser .csv")
     return s.cargar_csv(tipo, await archivo.read())

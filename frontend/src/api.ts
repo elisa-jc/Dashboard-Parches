@@ -9,6 +9,28 @@ export const REGION_UI: Record<string, string> = { TODOS: 'Todas', REGION_NORTH:
 
 export const exportUrl = (regionUi: string) => `${API}/export/prioridad.csv?region=${REGION_API[regionUi] ?? 'TODOS'}`;
 
+export async function uploadDatasetFile(file: File) {
+  const formData = new FormData();
+  formData.append('archivo', file);
+  const r = await fetch(`${API}/cargar`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!r.ok) {
+    const errorData = await r.json().catch(() => ({ detail: `Error HTTP ${r.status}` }));
+    throw new Error(errorData.detail ?? `Error al procesar archivo (HTTP ${r.status})`);
+  }
+  return r.json() as Promise<{
+    ok: boolean;
+    tipo: string;
+    filas?: number;
+    servidores?: number;
+    vulnerabilidades?: number;
+    resumen_preprocesamiento?: any;
+    actualizado_en?: string;
+  }>;
+}
+
 async function get<T>(ruta: string, params: Record<string, string | number> = {}): Promise<T> {
   const q = new URLSearchParams(Object.entries(params).map(([k, v]) => [k, String(v)])).toString();
   const r = await fetch(`${API}${ruta}${q ? `?${q}` : ''}`);

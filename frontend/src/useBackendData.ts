@@ -5,6 +5,17 @@ import { loadLiveData, type LiveData } from './api';
 export function useBackendData() {
   const [data, setData] = useState<LiveData | null>(null);
   const [status, setStatus] = useState<'loading' | 'online' | 'offline'>('loading');
+
+  const refresh = async () => {
+    try {
+      const d = await loadLiveData();
+      setData(d);
+      setStatus('online');
+    } catch {
+      setStatus('offline');
+    }
+  };
+
   useEffect(() => {
     let cancelled = false;
     loadLiveData()
@@ -12,5 +23,6 @@ export function useBackendData() {
       .catch(() => { if (!cancelled) setStatus('offline'); });
     return () => { cancelled = true; };
   }, []);
-  return { data, status };
+
+  return { data, status, refresh };
 }

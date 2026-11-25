@@ -3,7 +3,7 @@ import { geoEquirectangular, geoPath } from 'd3-geo';
 import { feature } from 'topojson-client';
 import type { Topology, GeometryCollection } from 'topojson-specification';
 import worldData from 'world-atlas/countries-110m.json';
-import { uploadDatasetFile, type RegionData } from './api';
+import { uploadDatasetFile, type RegionData, type HistoryData } from './api';
 import { useBackendData } from './useBackendData';
 
 type IconName =
@@ -115,23 +115,64 @@ function StatusBadge({ children, tone = 'neutral' }: { children: ReactNode; tone
   return <span className={`status-badge ${tone}`}><i />{children}</span>;
 }
 
-function TrendChart({ period }: { period: string }) {
-  const paths: Record<string, string> = {
+function TrendChart({ period, history }: { period: string; history?: HistoryData }) {
+  const defaultPaths: Record<string, string> = {
     '7 días': 'M0 130 C35 125 48 105 77 111 S120 85 151 92 S199 58 232 71 S279 44 310 52 S357 29 400 34',
     '30 días': 'M0 137 C31 136 56 110 82 117 S126 91 158 95 S201 72 237 74 S278 52 317 57 S365 31 400 37',
     '90 días': 'M0 148 C42 141 63 127 93 129 S141 112 174 107 S219 85 256 82 S304 58 341 55 S379 39 400 35',
   };
+
+  const points = history?.historial ?? [];
+  const hasRealHistory = points.length >= 2;
+
+  let pathD = defaultPaths[period] ?? defaultPaths['30 días'];
+  let lastY = 37;
+  let labels = ['01 Ago', '08 Ago', '15 Ago', '22 Ago', 'Hoy'];
+
+  if (hasRealHistory) {
+    const maxPoints = period === '7 días' ? 7 : period === '30 días' ? 15 : 30;
+    const slice = points.slice(-maxPoints);
+    const n = slice.length;
+
+    const coords = slice.map((item, idx) => {
+      const x = Math.round((idx / Math.max(1, n - 1)) * 400);
+      const rem = Math.max(0, Math.min(100, item.kpis.tasa_remediacion));
+      const y = Math.round(157 - (rem / 100) * (157 - 34));
+      return { x, y, fecha: item.fecha };
+    });
+
+    pathD = `M${coords[0].x} ${coords[0].y} ` + coords.slice(1).map((c) => `L${c.x} ${c.y}`).join(' ');
+    lastY = coords[coords.length - 1].y;
+
+    const step = Math.max(1, Math.floor((n - 1) / 4));
+    const labelIndices = [0];
+    for (let i = step; i < n - 1; i += step) {
+      if (labelIndices.length < 4) labelIndices.push(i);
+    }
+    if (!labelIndices.includes(n - 1)) labelIndices.push(n - 1);
+
+    labels = labelIndices.map((i) => {
+      const dt = new Date(coords[i].fecha);
+      if (isNaN(dt.getTime())) return `Punto ${i + 1}`;
+      return dt.toLocaleDateString('es-MX', { day: '2-digit', month: 'short' });
+    });
+  }
+
   return (
     <div className="trend-chart">
       <div className="chart-y"><span>100%</span><span>75%</span><span>50%</span><span>25%</span></div>
       <svg viewBox="0 0 400 170" preserveAspectRatio="none" role="img" aria-label="Evolución de la remediación">
         <line x1="0" y1="34" x2="400" y2="34" /><line x1="0" y1="75" x2="400" y2="75" /><line x1="0" y1="116" x2="400" y2="116" /><line x1="0" y1="157" x2="400" y2="157" />
         <path className="target-line" d="M0 43H400" />
-        <path className="trend-shadow" d={`${paths[period]} L400 166 L0 166 Z`} />
-        <path className="trend-line" d={paths[period]} />
-        <circle cx="400" cy={period === '90 días' ? 35 : period === '7 días' ? 34 : 37} r="5" />
+        <path className="trend-shadow" d={`${pathD} L400 166 L0 166 Z`} />
+        <path className="trend-line" d={pathD} />
+        <circle cx="400" cy={lastY} r="5" />
       </svg>
-      <div className="chart-x"><span>01 Ago</span><span>08 Ago</span><span>15 Ago</span><span>22 Ago</span><span>Hoy</span></div>
+      <div className="chart-x">
+        {labels.map((lbl, idx) => (
+          <span key={`${lbl}-${idx}`}>{lbl}</span>
+        ))}
+      </div>
     </div>
   );
 }
@@ -696,7 +737,7 @@ const handleExport = () => (active === 'resumen' ? handleExportExecutive() : han
                 <article className="panel-card trend-panel">
                   <div className="panel-header"><div><p className="eyebrow">REMEDIACIÓN</p><h2>Evolución de cobertura</h2></div><div className="segmented">{['7 días', '30 días', '90 días'].map((p) => <button key={p} className={period === p ? 'active' : ''} onClick={() => setPeriod(p)}>{p}</button>)}</div></div>
                   <div className="chart-summary"><strong>{data.remediation}%</strong><span><Icon name="trend" size={15} /> 4.2% vs. período anterior</span><small>Meta 95%</small></div>
-                  <TrendChart period={period} />
+                  <TrendChart period={period} history={live?.history} />
                 </article>
 
                 <article className="panel-card sla-panel">
@@ -894,7 +935,101 @@ const handleExport = () => (active === 'resumen' ? handleExportExecutive() : han
           )}
           
           {active === 'historial' && (
-            <section className="panel-card placeholder-panel"><span><Icon name={active === 'historial' ? 'history' : 'settings'} size={28} /></span><h2>{pageTitle}</h2><p>Este módulo está listo para conectarse con la fuente de datos corporativa.</p><button className="secondary-button" onClick={() => setActive('resumen')}>Volver al resumen</button></section>
+            <section className="panel-card full-panel">
+              <div className="panel-header table-header">
+                <div>
+                  <p className="eyebrow">TRAZABILIDAD Y AUDITORÍA</p>
+                  <h2>Historial de cargas y snapshots</h2>
+                  <span>Registro cronológico de todas las actualizaciones de inventario y vulnerabilidades guardadas por el sistema.</span>
+                </div>
+                <div className="table-actions">
+                  <span className="status-badge success">
+                    <Icon name="check" size={13} /> {live?.history?.puntos ?? 0} snapshots guardados
+                  </span>
+                </div>
+              </div>
+
+              {(!live?.history?.historial || live.history.historial.length === 0) ? (
+                <div className="placeholder-panel">
+                  <span><Icon name="history" size={28} /></span>
+                  <h2>No hay historial registrado aún</h2>
+                  <p>Los snapshots se guardarán automáticamente cada vez que cargues datos nuevos en la plataforma.</p>
+                  <button className="primary-button" onClick={() => setActive('resumen')}>Ir a Cargar Datos</button>
+                </div>
+              ) : (
+                <div className="table-wrap">
+                  <table>
+                    <thead>
+                      <tr>
+                        <th>Fecha y hora</th>
+                        <th>Origen / Evento</th>
+                        <th>Servidores</th>
+                        <th>Hallazgos totales</th>
+                        <th>Hallazgos abiertos</th>
+                        <th>Tasa remediación</th>
+                        <th>Cumplimiento SLA</th>
+                        <th>Reabiertos</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {[...live.history.historial].reverse().map((snap, idx) => {
+                        const d = new Date(snap.fecha);
+                        const fechaStr = isNaN(d.getTime())
+                          ? snap.fecha
+                          : d.toLocaleString('es-MX', {
+                              day: '2-digit',
+                              month: 'short',
+                              year: 'numeric',
+                              hour: '2-digit',
+                              minute: '2-digit',
+                              second: '2-digit',
+                            });
+
+                        const origenLabel: Record<string, string> = {
+                          inicial: 'Snapshot Inicial',
+                          carga_servidores: 'Carga Servidores (CSV)',
+                          carga_vulnerabilidades: 'Carga Vulnerabilidades (CSV)',
+                          carga_excel_completa: 'Carga Excel Completa',
+                        };
+
+                        const rem = snap.kpis.tasa_remediacion;
+                        const remTone = rem >= 90 ? 'success' : rem >= 70 ? 'warning' : 'critical';
+
+                        const sla = snap.kpis.cumplimiento_sla;
+                        const slaTone = sla >= 90 ? 'success' : sla >= 80 ? 'warning' : 'critical';
+
+                        return (
+                          <tr key={`${snap.fecha}-${idx}`}>
+                            <td>
+                              <strong>{fechaStr}</strong>
+                            </td>
+                            <td>
+                              <StatusBadge tone="neutral">
+                                {origenLabel[snap.origen] ?? snap.origen}
+                              </StatusBadge>
+                            </td>
+                            <td><b>{snap.kpis.servidores?.toLocaleString('es-MX') ?? 0}</b></td>
+                            <td>{snap.kpis.hallazgos_totales?.toLocaleString('es-MX') ?? 0}</td>
+                            <td>{snap.kpis.hallazgos_abiertos?.toLocaleString('es-MX') ?? 0}</td>
+                            <td>
+                              <StatusBadge tone={remTone}>
+                                {rem}%
+                              </StatusBadge>
+                            </td>
+                            <td>
+                              <StatusBadge tone={slaTone}>
+                                {sla}%
+                              </StatusBadge>
+                            </td>
+                            <td>{snap.kpis.hallazgos_reabiertos ?? 0}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
+            </section>
           )}
         </div>
       </main>

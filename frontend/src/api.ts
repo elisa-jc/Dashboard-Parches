@@ -57,7 +57,38 @@ export type RegionData = { remediation: number; sla: number; reopened: number; o
                            criticality?: Criticality[]; platforms?: [string, number][]; inProcess?: number };
 export type ServerRow = { id: string; os: string; region: string; role: string; risk: string; findings: number; status: string; last: string };
 export type AlertRow = { time: string; title: string; detail: string; tone: string; category: string; server: string; region: string; detected: string; recommendation: string };
-export type LiveData = { regions: Record<string, RegionData>; servers: ServerRow[]; alerts: AlertRow[]; alertCount: number; urgentes: number };
+
+export type HistorySnapshot = {
+  fecha: string;
+  origen: string;
+  kpis: {
+    servidores: number;
+    hallazgos_totales: number;
+    hallazgos_abiertos: number;
+    tasa_remediacion: number;
+    cumplimiento_sla: number;
+    pct_proximo_vencer?: number;
+    hallazgos_reabiertos: number;
+    servidores_obsoletos: number;
+    hallazgos_explotables: number;
+  };
+  regiones?: Record<string, { tasa_remediacion: number; hallazgos_abiertos: number }>;
+};
+
+export type HistoryData = {
+  puntos: number;
+  historial: HistorySnapshot[];
+  suficiente_para_tendencia: boolean;
+};
+
+export type LiveData = {
+  regions: Record<string, RegionData>;
+  servers: ServerRow[];
+  alerts: AlertRow[];
+  alertCount: number;
+  urgentes: number;
+  history?: HistoryData;
+};
 
 // ---------- Traducciones de los valores del dataset a texto del diseño ----------
 const SO: Record<string, string> = { WINDOWS_SERVER: 'Windows Server', LINUX_SERVER: 'Linux Server', UNIX_SERVER: 'Unix / AIX', HYPERVISOR: 'Hipervisor', OTHER_SERVER: 'Otro servidor', 'OTHER SERVER': 'Otro servidor' };
@@ -79,11 +110,12 @@ function adaptarAlerta(a: AlertaApi): AlertRow {
 
 export async function loadLiveData(): Promise<LiveData> {
   const regionesApi = Object.entries(REGION_API); // [Todas, TODOS], [Norte, REGION_NORTH] ...
-  const [resumenes, detalles, prioridad, alertas] = await Promise.all([
+  const [resumenes, detalles, prioridad, alertas, history] = await Promise.all([
     Promise.all(regionesApi.map(([, api]) => get<Resumen>('/dashboard/resumen', { region: api }))),
     Promise.all(regionesApi.map(([, api]) => get<Detalle>('/dashboard/detalle', { region: api, limit: 1 }))),
     get<Prioridad>('/servidores/prioridad', { region: 'TODOS', limit: 250 }),
     get<Alertas>('/dashboard/alertas', { region: 'TODOS', limit: 50 }),
+    get<HistoryData>('/historial', { limit: 50 }).catch(() => ({ puntos: 0, historial: [], suficiente_para_tendencia: false })),
   ]);
   const regions: Record<string, RegionData> = {};
   regionesApi.forEach(([ui], i) => {
@@ -99,6 +131,13 @@ export async function loadLiveData(): Promise<LiveData> {
     id: s.serverid, os: SO[s.osfamily] ?? s.osfamily, region: REGION_UI[s.regiongroup] ?? s.regiongroup, role: ROL[s.functionalrole] ?? s.functionalrole,
     risk: RIESGO[s.prioridad] ?? 'Medio', findings: s.hallazgos_abiertos, status: s.motivo_principal, last: `Ambiente ${s.environment}`,
   }));
-  return { regions, servers, alerts: alertas.alertas.map(adaptarAlerta), alertCount: alertas.conteo.TODAS ?? alertas.alertas.length, urgentes: prioridad.urgentes };
+  return {
+    regions,
+    servers,
+    alerts: alertas.alertas.map(adaptarAlerta),
+    alertCount: alertas.conteo.TODAS ?? alertas.alertas.length,
+    urgentes: prioridad.urgentes,
+    history,
+  };
 }
 

@@ -1,3 +1,4 @@
+import os
 from functools import lru_cache
 from typing import Literal
 
@@ -7,6 +8,7 @@ from pydantic import BaseModel, Field
 
 from app.repositories.base import BaseRepository
 from app.repositories.csv_repository import CSVRepository
+from app.repositories.sql_repository import SQLRepository
 from app.services.metrics_service import MetricsService
 
 router = APIRouter(prefix="/api/v1", tags=["Analíticas Ejecutivas - FEMSA"])
@@ -19,8 +21,10 @@ TipoCSV = Literal["servidores", "vulnerabilidades"]
 
 @lru_cache(maxsize=1)
 def get_repository() -> BaseRepository:
-    # Para pasar a SQL basta con cambiar esta línea:
-    # return SQLRepository("postgresql://usuario:clave@host/db")
+    """Con DATABASE_URL definido usa SQL; sin ella cae a CSV (respaldo para la demo)."""
+    url = os.getenv("DATABASE_URL")
+    if url:
+        return SQLRepository(url)
     return CSVRepository()
 
 

@@ -9,6 +9,36 @@ export const REGION_UI: Record<string, string> = { TODOS: 'Todas', REGION_NORTH:
 
 export const exportUrl = (regionUi: string) => `${API}/export/prioridad.csv?region=${REGION_API[regionUi] ?? 'TODOS'}`;
 
+// ---------- Configuración (umbrales, perfil y pesos del score) ----------
+export type PesosScore = {
+  criticidad: number; expuesto: number; eol: number; eol_eos: number;
+  severidad: number; explotable: number; malware: number;
+  fuera_sla: number; reabierto: number; antiguo: number;
+};
+export type AppConfig = {
+  meta_remediacion?: number;
+  cortes_prioridad?: { URGENTE: number; ALTA: number; MEDIA: number };
+  bandas_proximo_vencer?: string[];
+  cortes_riesgo?: { ALTO: number; MEDIO: number };
+  pesos_score?: PesosScore;
+  usuario?: { nombre?: string; rol?: string; correo?: string };
+};
+
+export const loadConfig = () => get<AppConfig>('/config');
+
+export async function saveConfig(cambios: AppConfig): Promise<AppConfig> {
+  const r = await fetch(`${API}/config`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(cambios),
+  });
+  if (!r.ok) {
+    const err = await r.json().catch(() => ({ detail: `Error HTTP ${r.status}` }));
+    throw new Error(err.detail ?? `Error al guardar configuración (HTTP ${r.status})`);
+  }
+  return r.json() as Promise<AppConfig>;
+}
+
 export async function uploadDatasetFile(file: File) {
   const formData = new FormData();
   formData.append('archivo', file);

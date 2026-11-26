@@ -150,6 +150,7 @@ class ConfigIn(BaseModel):
     bandas_proximo_vencer: list[Literal["AGE_0_7D", "AGE_8_30D", "AGE_31_90D",
                                         "AGE_91_180D", "AGE_GT180D"]] | None = None
     cortes_riesgo: dict[Literal["ALTO", "MEDIO"], int] | None = None
+    pesos_score: dict[str, int] | None = None
     usuario: Usuario | None = None
 
 

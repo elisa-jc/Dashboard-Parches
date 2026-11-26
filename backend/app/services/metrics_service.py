@@ -64,6 +64,20 @@ PUNTOS = {
 }
 SCORE_MAX = 20 + 20 + 15 + 15 + 15 + 10 + 10 + 6 + 5  # 116
 
+# Pesos del score de prioridad editables desde la pantalla de Configuración.
+PESOS_DEFAULT = {
+    "criticidad": 4,   # x nivel (1-5)                 -> máx 20
+    "expuesto": 20,    # INTERNET_EXPOSED
+    "eol": 10,         # EOL
+    "eol_eos": 15,     # EOL_EOS
+    "severidad": 3,    # x severidad máxima (1-5)      -> máx 15
+    "explotable": 5,   # x hallazgos explotables, tope 3 -> máx 15
+    "malware": 10,     # si tiene malware asociado
+    "fuera_sla": 2,    # x hallazgos fuera de SLA, tope 5 -> máx 10
+    "reabierto": 2,    # x hallazgos reabiertos, tope 3   -> máx 6
+    "antiguo": 1,      # x hallazgos >90 días, tope 5     -> máx 5
+}
+
 # Valores por defecto de lo que ahora se puede editar desde la pantalla de Configuración.
 CONFIG_DEFAULT = {
     "meta_remediacion": 95.0,
@@ -73,6 +87,8 @@ CONFIG_DEFAULT = {
     "bandas_proximo_vencer": ["AGE_31_90D"],
     # Cortes del índice de riesgo regional (0-100) para colorear el mapa.
     "cortes_riesgo": {"ALTO": 60, "MEDIO": 40},
+    # Pesos de cada factor del score de prioridad (0-100).
+    "pesos_score": dict(PESOS_DEFAULT),
     "usuario": {"nombre": "Usuario", "rol": "Auditor de TI", "correo": ""},
 }
 
@@ -482,18 +498,23 @@ class MetricsService:
         ).reset_index()
 
         df = srv.merge(agg, on="serverid", how="inner")
+        P = self.cfg["pesos_score"]  # pesos editables desde Configuración
         raw = (
-            df["assetcriticality"].map(PESO_CRITICIDAD).fillna(1) * PUNTOS["criticidad"]
-            + (df["exposurecategory"] == "INTERNET_EXPOSED") * PUNTOS["expuesto"]
-            + df["oslifecycle"].map({"EOL": PUNTOS["eol"], "EOL_EOS": PUNTOS["eol_eos"]}).fillna(0)
-            + df["severidad_maxima"].fillna(0) * PUNTOS["severidad"]
-            + df["explotables"].clip(upper=3) * PUNTOS["explotable"]
-            + (df["malware"] > 0) * PUNTOS["malware"]
-            + df["fuera_sla"].clip(upper=5) * PUNTOS["fuera_sla"]
-            + df["reabiertos"].clip(upper=3) * PUNTOS["reabierto"]
-            + df["antiguos"].clip(upper=5) * PUNTOS["antiguo"]
+            df["assetcriticality"].map(PESO_CRITICIDAD).fillna(1) * P["criticidad"]
+            + (df["exposurecategory"] == "INTERNET_EXPOSED") * P["expuesto"]
+            + df["oslifecycle"].map({"EOL": P["eol"], "EOL_EOS": P["eol_eos"]}).fillna(0)
+            + df["severidad_maxima"].fillna(0) * P["severidad"]
+            + df["explotables"].clip(upper=3) * P["explotable"]
+            + (df["malware"] > 0) * P["malware"]
+            + df["fuera_sla"].clip(upper=5) * P["fuera_sla"]
+            + df["reabiertos"].clip(upper=3) * P["reabierto"]
+            + df["antiguos"].clip(upper=5) * P["antiguo"]
         ).astype(float)
-        df["score"] = (raw / SCORE_MAX * 100).round().astype(int)
+        score_max = (
+            5 * P["criticidad"] + P["expuesto"] + max(P["eol"], P["eol_eos"]) + 5 * P["severidad"]
+            + 3 * P["explotable"] + P["malware"] + 5 * P["fuera_sla"] + 3 * P["reabierto"] + 5 * P["antiguo"]
+        )
+        df["score"] = (raw / score_max * 100).round().astype(int)
         cortes = self.cfg["cortes_prioridad"]
         df["prioridad"] = np.select(
             [df["score"] >= cortes["URGENTE"],

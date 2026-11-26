@@ -3,7 +3,7 @@ import { geoEquirectangular, geoPath } from 'd3-geo';
 import { feature } from 'topojson-client';
 import type { Topology, GeometryCollection } from 'topojson-specification';
 import worldData from 'world-atlas/countries-110m.json';
-import { uploadDatasetFile, type RegionData, type HistoryData } from './api';
+import { uploadDatasetFile, loadConfig, saveConfig, type AppConfig, type PesosScore, type RegionData, type HistoryData } from './api';
 import { useBackendData } from './useBackendData';
 
 type IconName =
@@ -452,6 +452,41 @@ async function captureMapPng(): Promise<{ dataUrl: string; width: number; height
   }
 }
 
+const PESOS_LABELS: { key: keyof PesosScore; label: string; help: string }[] = [
+  { key: 'criticidad', label: 'Criticidad del activo', help: 'Puntos por nivel de criticidad (1-5)' },
+  { key: 'expuesto', label: 'Exposición a Internet', help: 'Puntos si el servidor está expuesto a Internet' },
+  { key: 'eol', label: 'SO obsoleto (EOL)', help: 'Puntos si el SO llegó a fin de vida' },
+  { key: 'eol_eos', label: 'SO sin soporte (EOL+EOS)', help: 'Puntos si el SO no recibe parches' },
+  { key: 'severidad', label: 'Severidad máxima', help: 'Puntos por nivel de severidad (1-5)' },
+  { key: 'explotable', label: 'Hallazgos explotables', help: 'Puntos por hallazgo explotable (tope 3)' },
+  { key: 'malware', label: 'Malware asociado', help: 'Puntos si hay malware asociado' },
+  { key: 'fuera_sla', label: 'Hallazgos fuera de SLA', help: 'Puntos por hallazgo fuera de SLA (tope 5)' },
+  { key: 'reabierto', label: 'Hallazgos reabiertos', help: 'Puntos por hallazgo reabierto (tope 3)' },
+  { key: 'antiguo', label: 'Hallazgos antiguos (>90 días)', help: 'Puntos por hallazgo con más de 90 días (tope 5)' },
+];
+
+function PesosPanel({ pesos, onChange }: { pesos: PesosScore; onChange: (next: PesosScore) => void }) {
+  return (
+    <div className="settings-fields two-columns">
+      {PESOS_LABELS.map(({ key, label, help }) => (
+        <label key={key} title={help}>
+          <span>{label}</span>
+          <div>
+            <input
+              type="number"
+              min={0}
+              max={100}
+              value={pesos[key]}
+              onChange={(e) => onChange({ ...pesos, [key]: Math.max(0, Number(e.target.value) || 0) })}
+            />
+            <b>pts</b>
+          </div>
+        </label>
+      ))}
+    </div>
+  );
+}
+
 export default function App() {
   const { data: live, status, refresh: refreshLive } = useBackendData();
   const regions = live?.regions ?? mockRegions;
@@ -475,6 +510,32 @@ export default function App() {
   const [darkMode, setDarkMode] = useState(() => typeof window !== 'undefined' && window.localStorage.getItem('femsa-theme') === 'dark');
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
+  const [configError, setConfigError] = useState<string | null>(null);
+  const [pesos, setPesos] = useState<PesosScore>({
+    criticidad: 4, expuesto: 20, eol: 10, eol_eos: 15, severidad: 3,
+    explotable: 5, malware: 10, fuera_sla: 2, reabierto: 2, antiguo: 1,
+  });
+
+  // Carga los pesos guardados en el backend al abrir la app.
+  useEffect(() => {
+    loadConfig()
+      .then((cfg) => { if (cfg.pesos_score) setPesos({ ...pesos, ...cfg.pesos_score }); })
+      .catch(() => { /* sin conexión: se usan los valores por defecto */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const guardarPesos = async () => {
+    setConfigError(null);
+    try {
+      const cfg = await saveConfig({ pesos_score: pesos });
+      if (cfg.pesos_score) setPesos({ ...pesos, ...cfg.pesos_score });
+      setSettingsSaved(true);
+      window.setTimeout(() => setSettingsSaved(false), 2500);
+      await refreshLive(); // recalcula el score con los nuevos pesos
+    } catch (e: any) {
+      setConfigError(e.message ?? 'No se pudo guardar');
+    }
+  };
   const [settings, setSettings] = useState({
     criticalAlerts: true,
     slaAlerts: true,
@@ -900,6 +961,7 @@ const handleExport = () => (active === 'resumen' ? handleExportExecutive() : han
                   <a href="#sla-settings"><Icon name="clock" size={17} /><span>Políticas de SLA</span><Icon name="chevron" size={14} /></a>
                   <a href="#maintenance"><Icon name="settings" size={17} /><span>Mantenimiento</span><Icon name="chevron" size={14} /></a>
                   <a href="#data-settings"><Icon name="server" size={17} /><span>Datos y actualización</span><Icon name="chevron" size={14} /></a>
+                  <a href="#pesos"><Icon name="filter" size={17} /><span>Pesos del score</span><Icon name="chevron" size={14} /></a>
                 </nav>
                 <div className="settings-status"><span><Icon name="shield" size={18} /></span><div><b>Configuración protegida</b><small>Solo administradores pueden editar estos valores.</small></div></div>
               </aside>
@@ -931,6 +993,15 @@ const handleExport = () => (active === 'resumen' ? handleExportExecutive() : han
                   <div className="setting-rows"><label><div><b>Actualización automática</b><span>Consultar nuevos datos mientras la sesión esté activa.</span></div><input type="checkbox" checked={settings.autoRefresh} onChange={(e) => setSettings({ ...settings, autoRefresh: e.target.checked })} /><i /></label></div>
                   <div className="settings-fields"><label><span>Frecuencia</span><select disabled={!settings.autoRefresh} value={settings.refreshRate} onChange={(e) => setSettings({ ...settings, refreshRate: e.target.value })}>{['1 minuto', '5 minutos', '15 minutos', '30 minutos'].map((rate) => <option key={rate}>{rate}</option>)}</select></label></div>
                 </article>
+                <article className="panel-card settings-section" id="pesos">
+                  <div className="settings-heading"><div><p className="eyebrow">PRIORIZACIÓN</p><h2>Pesos del score de riesgo</h2><span>Define cuánto pesa cada factor en el score 0-100 de cada servidor. Se aplica al momento de guardar.</span></div><Icon name="filter" size={20} /></div>
+                  <PesosPanel pesos={pesos} onChange={setPesos} />
+                </article>
+                <div className="settings-save">
+                  <span className={settingsSaved ? 'visible' : ''}><Icon name="check" size={15} /> Configuración guardada</span>
+                  {configError && <span style={{ color: 'crimson' }}>{configError}</span>}
+                  <button className="primary-button" onClick={guardarPesos}>Guardar pesos</button>
+                </div>
                 <div className="settings-save"><span className={settingsSaved ? 'visible' : ''}><Icon name="check" size={15} /> Configuración guardada</span><button className="primary-button" onClick={() => { setSettingsSaved(true); window.setTimeout(() => setSettingsSaved(false), 2500); }}>Guardar cambios</button></div>
               </div>
             </section>

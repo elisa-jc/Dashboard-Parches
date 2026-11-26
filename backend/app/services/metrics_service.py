@@ -419,7 +419,10 @@ class MetricsService:
     def alertas(self, region: str = "TODOS", motivo: str = "TODAS", limit: int = 50,
                 estado: str = "ABIERTAS") -> dict:
         _, _, full = self._cargar(region)
-        al = full[full["assetcriticality"].isin(["CRITICAL", "VERY_HIGH"])].copy()
+        al = full[
+            full["assetcriticality"].isin(["CRITICAL", "VERY_HIGH"])
+            | (full["exposurecategory"] == "INTERNET_EXPOSED")
+        ].copy()
 
         condiciones = [
             al["slastatus"] == "BREACHED",

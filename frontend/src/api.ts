@@ -114,7 +114,7 @@ export async function loadLiveData(): Promise<LiveData> {
     Promise.all(regionesApi.map(([, api]) => get<Resumen>('/dashboard/resumen', { region: api }))),
     Promise.all(regionesApi.map(([, api]) => get<Detalle>('/dashboard/detalle', { region: api, limit: 1 }))),
     get<Prioridad>('/servidores/prioridad', { region: 'TODOS', limit: 250 }),
-    get<Alertas>('/dashboard/alertas', { region: 'TODOS', limit: 50 }),
+    get<Alertas>('/dashboard/alertas', { region: 'TODOS', limit: 500 }),
     get<HistoryData>('/historial', { limit: 50 }).catch(() => ({ puntos: 0, historial: [], suficiente_para_tendencia: false })),
   ]);
   const regions: Record<string, RegionData> = {};

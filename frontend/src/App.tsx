@@ -487,7 +487,9 @@ export default function App() {
     maintenanceTime: '02:00',
   });
   const data = regions[region as keyof typeof regions] ?? regions.Todas;
-  const filteredAlerts = alertFilter === 'Todas' ? alerts : alerts.filter((alert) => alert.category === alertFilter);
+  const filteredAlerts = alerts.filter(
+    (alert) => (region === 'Todas' || alert.region === region) && (alertFilter === 'Todas' || alert.category === alertFilter)
+  );
 
  const zoneStats = useMemo(() => {
   const out: Record<string, ZoneStat> = {};
@@ -651,7 +653,7 @@ const handleExport = () => (active === 'resumen' ? handleExportExecutive() : han
               {notificationsOpen && (
                 <div className="notification-popover">
                   <div><strong>Notificaciones</strong><button onClick={() => setNotificationsOpen(false)} aria-label="Cerrar"><Icon name="close" size={16} /></button></div>
-                  {alerts.slice(0, 3).map((alert) => <button key={alert.title} onClick={() => { setActive('alertas'); setNotificationsOpen(false); }}><i className={alert.tone} /><span><b>{alert.title}</b><small>{alert.detail}</small></span></button>)}
+                  {alerts.slice(0, 3).map((alert) => <button key={`${alert.detected}-${alert.server}-${alert.title}`} onClick={() => { setActive('alertas'); setNotificationsOpen(false); }}><i className={alert.tone} /><span><b>{alert.title}</b><small>{alert.detail}</small></span></button>)}
                 </div>
               )}
             </div>
@@ -753,7 +755,7 @@ const handleExport = () => (active === 'resumen' ? handleExportExecutive() : han
 
                 <article className="panel-card activity-panel">
                   <div className="panel-header"><div><p className="eyebrow">EN TIEMPO REAL</p><h2>Actividad reciente</h2></div><button className="text-button" onClick={() => setActive('alertas')}>Ver todo</button></div>
-                  <div className="activity-list">{alerts.slice(0, 4).map((alert) => <button key={alert.title} onClick={() => setActive('alertas')}><span className={`activity-dot ${alert.tone}`}><Icon name={alert.tone === 'success' ? 'check' : alert.tone === 'warning' ? 'clock' : 'alert'} size={15} /></span><div><strong>{alert.title}</strong><p>{alert.detail}</p></div><time>{alert.time}</time></button>)}</div>
+                  <div className="activity-list">{alerts.slice(0, 4).map((alert) => <button key={`${alert.detected}-${alert.server}-${alert.title}`} onClick={() => setActive('alertas')}><span className={`activity-dot ${alert.tone}`}><Icon name={alert.tone === 'success' ? 'check' : alert.tone === 'warning' ? 'clock' : 'alert'} size={15} /></span><div><strong>{alert.title}</strong><p>{alert.detail}</p></div><time>{alert.time}</time></button>)}</div>
                 </article>
               </section>
             </>
@@ -872,10 +874,10 @@ const handleExport = () => (active === 'resumen' ? handleExportExecutive() : han
 
           {active === 'alertas' && (
             <section className="panel-card full-panel">
-              <div className="panel-header table-header"><div><p className="eyebrow">PRIORIZACIÓN</p><h2>Alertas activas</h2><span>Hallazgos no remediados en activos críticos y muy altos.</span></div><div className="alert-filters">{['Todas', 'Críticas', 'SLA', 'Expuestas'].map((f) => <button key={f} className={alertFilter === f ? 'active' : ''} onClick={() => setAlertFilter(f)}>{f}</button>)}</div></div>
+              <div className="panel-header table-header"><div><p className="eyebrow">PRIORIZACIÓN</p><h2>Alertas activas</h2><span>Hallazgos no remediados en activos críticos, muy altos o expuestos a Internet.</span></div><div className="alert-filters">{['Todas', 'Críticas', 'SLA', 'Expuestas'].map((f) => <button key={f} className={alertFilter === f ? 'active' : ''} onClick={() => setAlertFilter(f)}>{f}</button>)}</div></div>
               <div className="large-alert-list">
                 {filteredAlerts.map((alert) => (
-                  <button key={alert.title} onClick={() => setSelectedAlert(alert)} aria-label={`Abrir detalle de ${alert.title}`}>
+                  <button key={`${alert.detected}-${alert.server}-${alert.title}`} onClick={() => setSelectedAlert(alert)} aria-label={`Abrir detalle de ${alert.title}`}>
                     <span className={`activity-dot ${alert.tone}`}><Icon name={alert.tone === 'success' ? 'check' : 'alert'} size={16} /></span>
                     <div><strong>{alert.title}</strong><p>{alert.detail}</p></div>
                     <StatusBadge tone={alert.tone === 'critical' ? 'critical' : alert.tone === 'warning' ? 'warning' : 'success'}>{alert.category}</StatusBadge>

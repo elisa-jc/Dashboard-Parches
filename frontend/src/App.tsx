@@ -3,7 +3,7 @@ import { geoEquirectangular, geoPath } from 'd3-geo';
 import { feature } from 'topojson-client';
 import type { Topology, GeometryCollection } from 'topojson-specification';
 import worldData from 'world-atlas/countries-110m.json';
-import { uploadDatasetFile, loadConfig, saveConfig, type AppConfig, type PesosScore, type RegionData, type HistoryData } from './api';
+import { uploadDatasetFile, loadConfig, saveConfig, type AppConfig, type FactorId, type RegionData, type HistoryData } from './api';
 import { useBackendData } from './useBackendData';
 
 type IconName =
@@ -452,34 +452,69 @@ async function captureMapPng(): Promise<{ dataUrl: string; width: number; height
   }
 }
 
-const PESOS_LABELS: { key: keyof PesosScore; label: string; help: string }[] = [
-  { key: 'criticidad', label: 'Criticidad del activo', help: 'Puntos por nivel de criticidad (1-5)' },
-  { key: 'expuesto', label: 'Exposición a Internet', help: 'Puntos si el servidor está expuesto a Internet' },
-  { key: 'eol', label: 'SO obsoleto (EOL)', help: 'Puntos si el SO llegó a fin de vida' },
-  { key: 'eol_eos', label: 'SO sin soporte (EOL+EOS)', help: 'Puntos si el SO no recibe parches' },
-  { key: 'severidad', label: 'Severidad máxima', help: 'Puntos por nivel de severidad (1-5)' },
-  { key: 'explotable', label: 'Hallazgos explotables', help: 'Puntos por hallazgo explotable (tope 3)' },
-  { key: 'malware', label: 'Malware asociado', help: 'Puntos si hay malware asociado' },
-  { key: 'fuera_sla', label: 'Hallazgos fuera de SLA', help: 'Puntos por hallazgo fuera de SLA (tope 5)' },
-  { key: 'reabierto', label: 'Hallazgos reabiertos', help: 'Puntos por hallazgo reabierto (tope 3)' },
-  { key: 'antiguo', label: 'Hallazgos antiguos (>90 días)', help: 'Puntos por hallazgo con más de 90 días (tope 5)' },
+// Escala fija de puntos por posición (1°..9°). Suma 116 = SCORE_MAX del backend.
+const FACTORES_ORDEN_DEFAULT: FactorId[] = ['criticidad', 'expuesto', 'obsolescencia', 'severidad', 'explotable', 'malware', 'fuera_sla', 'reabierto', 'antiguo'];
+const ESCALA_POR_POSICION = [20, 20, 15, 15, 15, 10, 10, 6, 5];
+const FACTOR_LABELS: Record<FactorId, string> = {
+  criticidad: 'Criticidad del activo',
+  expuesto: 'Exposición a Internet',
+  obsolescencia: 'Sistema obsoleto (EOL / sin soporte)',
+  severidad: 'Severidad máxima',
+  explotable: 'Vulnerabilidad explotable',
+  malware: 'Malware asociado',
+  fuera_sla: 'Fuera de SLA',
+  reabierto: 'Reabiertos',
+  antiguo: 'Antigüedad (>90 días)',
+};
+
+function PrioridadFactoresPanel({ orden, onChange }: { orden: FactorId[]; onChange: (next: FactorId[]) => void }) {
+  const mover = (i: number, dir: -1 | 1) => {
+    const j = i + dir;
+    if (j < 0 || j >= orden.length) return;
+    const next = [...orden];
+    [next[i], next[j]] = [next[j], next[i]];
+    onChange(next);
+  };
+  return (
+    <div className="factor-list">
+      {orden.map((id, i) => (
+        <div className="factor-row" key={id}>
+          <span className="factor-pos">{i + 1}°</span>
+          <span className="factor-name">{FACTOR_LABELS[id]}</span>
+          <span className="factor-pts">hasta {ESCALA_POR_POSICION[i]} pts</span>
+          <span className="factor-actions">
+            <button type="button" aria-label={`Subir ${FACTOR_LABELS[id]}`} disabled={i === 0}
+              onClick={() => mover(i, -1)}>▲</button>
+            <button type="button" aria-label={`Bajar ${FACTOR_LABELS[id]}`} disabled={i === orden.length - 1}
+              onClick={() => mover(i, 1)}>▼</button>
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+const CORTES_LABELS: { key: 'URGENTE' | 'ALTA' | 'MEDIA'; label: string; help: string }[] = [
+  { key: 'URGENTE', label: 'Urgente', help: 'Score igual o mayor a este valor se marca URGENTE' },
+  { key: 'ALTA', label: 'Alta', help: 'Score igual o mayor a este valor se marca ALTA' },
+  { key: 'MEDIA', label: 'Media', help: 'Score igual o mayor a este valor se marca MEDIA (menor = BAJA)' },
 ];
 
-function PesosPanel({ pesos, onChange }: { pesos: PesosScore; onChange: (next: PesosScore) => void }) {
+function CortesPanel({ cortes, onChange }: { cortes: { URGENTE: number; ALTA: number; MEDIA: number }; onChange: (next: { URGENTE: number; ALTA: number; MEDIA: number }) => void }) {
   return (
     <div className="settings-fields two-columns">
-      {PESOS_LABELS.map(({ key, label, help }) => (
+      {CORTES_LABELS.map(({ key, label, help }) => (
         <label key={key} title={help}>
           <span>{label}</span>
-          <div>
+          <div className="slider-row">
             <input
-              type="number"
+              type="range"
               min={0}
               max={100}
-              value={pesos[key]}
-              onChange={(e) => onChange({ ...pesos, [key]: Math.max(0, Number(e.target.value) || 0) })}
+              value={cortes[key]}
+              onChange={(e) => onChange({ ...cortes, [key]: Number(e.target.value) })}
             />
-            <b>pts</b>
+            <b>{cortes[key]}</b>
           </div>
         </label>
       ))}
@@ -511,27 +546,43 @@ export default function App() {
   const [settingsSaved, setSettingsSaved] = useState(false);
   const [profileSaved, setProfileSaved] = useState(false);
   const [configError, setConfigError] = useState<string | null>(null);
-  const [pesos, setPesos] = useState<PesosScore>({
-    criticidad: 4, expuesto: 20, eol: 10, eol_eos: 15, severidad: 3,
-    explotable: 5, malware: 10, fuera_sla: 2, reabierto: 2, antiguo: 1,
-  });
+  const [orden, setOrden] = useState<FactorId[]>(FACTORES_ORDEN_DEFAULT);
+  const [cortes, setCortes] = useState({ URGENTE: 60, ALTA: 40, MEDIA: 25 });
 
-  // Carga los pesos guardados en el backend al abrir la app.
+  // Carga el orden guardado en el backend al abrir la app.
   useEffect(() => {
     loadConfig()
-      .then((cfg) => { if (cfg.pesos_score) setPesos({ ...pesos, ...cfg.pesos_score }); })
-      .catch(() => { /* sin conexión: se usan los valores por defecto */ });
+      .then((cfg: AppConfig) => {
+        if (cfg.orden_factores &&
+            Array.isArray(cfg.orden_factores) &&
+            [...cfg.orden_factores].sort().join() === [...FACTORES_ORDEN_DEFAULT].sort().join()) {
+          setOrden(cfg.orden_factores);
+        }
+        if (cfg.cortes_prioridad) setCortes({ ...cortes, ...cfg.cortes_prioridad });
+      })
+      .catch(() => { /* sin conexión: se quedan los valores por defecto */ });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const guardarPesos = async () => {
+  // Urgente > Alta > Media > 0 y todos <= 100 (el backend también lo valida con HTTP 400).
+  const cortesValidos = cortes.URGENTE > cortes.ALTA && cortes.ALTA > cortes.MEDIA && cortes.MEDIA > 0
+    && cortes.URGENTE <= 100 && cortes.ALTA <= 100 && cortes.MEDIA <= 100;
+  const cortesMotivo = cortesValidos ? null
+    : 'Los cortes deben cumplir Urgente > Alta > Media, mayores que 0 y hasta 100.';
+
+  const guardarConfiguracion = async () => {
     setConfigError(null);
+    if (!cortesValidos) return;
     try {
-      const cfg = await saveConfig({ pesos_score: pesos });
-      if (cfg.pesos_score) setPesos({ ...pesos, ...cfg.pesos_score });
+      const cfg = await saveConfig({ orden_factores: orden, cortes_prioridad: cortes });
+      if (cfg.orden_factores &&
+          [...cfg.orden_factores].sort().join() === [...FACTORES_ORDEN_DEFAULT].sort().join()) {
+        setOrden(cfg.orden_factores);
+      }
+      if (cfg.cortes_prioridad) setCortes({ ...cortes, ...cfg.cortes_prioridad });
       setSettingsSaved(true);
       window.setTimeout(() => setSettingsSaved(false), 2500);
-      await refreshLive(); // recalcula el score con los nuevos pesos
+      await refreshLive(); // recalcula el score con el nuevo orden
     } catch (e: any) {
       setConfigError(e.message ?? 'No se pudo guardar');
     }
@@ -961,7 +1012,7 @@ const handleExport = () => (active === 'resumen' ? handleExportExecutive() : han
                   <a href="#sla-settings"><Icon name="clock" size={17} /><span>Políticas de SLA</span><Icon name="chevron" size={14} /></a>
                   <a href="#maintenance"><Icon name="settings" size={17} /><span>Mantenimiento</span><Icon name="chevron" size={14} /></a>
                   <a href="#data-settings"><Icon name="server" size={17} /><span>Datos y actualización</span><Icon name="chevron" size={14} /></a>
-                  <a href="#pesos"><Icon name="filter" size={17} /><span>Pesos del score</span><Icon name="chevron" size={14} /></a>
+                  <a href="#pesos"><Icon name="filter" size={17} /><span>Prioridad de factores</span><Icon name="chevron" size={14} /></a>
                 </nav>
                 <div className="settings-status"><span><Icon name="shield" size={18} /></span><div><b>Configuración protegida</b><small>Solo administradores pueden editar estos valores.</small></div></div>
               </aside>
@@ -994,15 +1045,20 @@ const handleExport = () => (active === 'resumen' ? handleExportExecutive() : han
                   <div className="settings-fields"><label><span>Frecuencia</span><select disabled={!settings.autoRefresh} value={settings.refreshRate} onChange={(e) => setSettings({ ...settings, refreshRate: e.target.value })}>{['1 minuto', '5 minutos', '15 minutos', '30 minutos'].map((rate) => <option key={rate}>{rate}</option>)}</select></label></div>
                 </article>
                 <article className="panel-card settings-section" id="pesos">
-                  <div className="settings-heading"><div><p className="eyebrow">PRIORIZACIÓN</p><h2>Pesos del score de riesgo</h2><span>Define cuánto pesa cada factor en el score 0-100 de cada servidor. Se aplica al momento de guardar.</span></div><Icon name="filter" size={20} /></div>
-                  <PesosPanel pesos={pesos} onChange={setPesos} />
+                  <div className="settings-heading"><div><p className="eyebrow">PRIORIZACIÓN</p><h2>Prioridad de factores</h2><span>El orden define cuánto pesa cada factor en el score de riesgo (0-100). La escala de puntos es fija para mantener el criterio comparable entre auditorías.</span></div><Icon name="filter" size={20} /></div>
+                  <PrioridadFactoresPanel orden={orden} onChange={setOrden} />
+                  <div className="factor-reset">
+                    <button type="button" className="secondary-button" onClick={() => setOrden(FACTORES_ORDEN_DEFAULT)}>Restablecer orden por defecto</button>
+                  </div>
+                  <div className="settings-heading" style={{ marginTop: '1.25rem' }}><div><p className="eyebrow">LISTA DE PRIORIDAD</p><h2>Cortes de prioridad</h2><span>Decide desde qué score un servidor aparece como URGENTE, ALTA o MEDIA en las listas.</span></div><Icon name="alert" size={20} /></div>
+                  <CortesPanel cortes={cortes} onChange={setCortes} />
+                  {cortesMotivo && <p className="settings-warning">{cortesMotivo}</p>}
                 </article>
                 <div className="settings-save">
                   <span className={settingsSaved ? 'visible' : ''}><Icon name="check" size={15} /> Configuración guardada</span>
                   {configError && <span style={{ color: 'crimson' }}>{configError}</span>}
-                  <button className="primary-button" onClick={guardarPesos}>Guardar pesos</button>
+                  <button className="primary-button" onClick={guardarConfiguracion} disabled={!cortesValidos}>Guardar cambios</button>
                 </div>
-                <div className="settings-save"><span className={settingsSaved ? 'visible' : ''}><Icon name="check" size={15} /> Configuración guardada</span><button className="primary-button" onClick={() => { setSettingsSaved(true); window.setTimeout(() => setSettingsSaved(false), 2500); }}>Guardar cambios</button></div>
               </div>
             </section>
           )}

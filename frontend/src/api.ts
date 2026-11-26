@@ -9,18 +9,16 @@ export const REGION_UI: Record<string, string> = { TODOS: 'Todas', REGION_NORTH:
 
 export const exportUrl = (regionUi: string) => `${API}/export/prioridad.csv?region=${REGION_API[regionUi] ?? 'TODOS'}`;
 
-// ---------- Configuración (umbrales, perfil y pesos del score) ----------
-export type PesosScore = {
-  criticidad: number; expuesto: number; eol: number; eol_eos: number;
-  severidad: number; explotable: number; malware: number;
-  fuera_sla: number; reabierto: number; antiguo: number;
-};
+// ---------- Configuración (umbrales, perfil y orden de factores del score) ----------
+export type FactorId =
+  | 'criticidad' | 'expuesto' | 'obsolescencia' | 'severidad' | 'explotable'
+  | 'malware' | 'fuera_sla' | 'reabierto' | 'antiguo';
 export type AppConfig = {
   meta_remediacion?: number;
   cortes_prioridad?: { URGENTE: number; ALTA: number; MEDIA: number };
   bandas_proximo_vencer?: string[];
   cortes_riesgo?: { ALTO: number; MEDIO: number };
-  pesos_score?: PesosScore;
+  orden_factores?: FactorId[];
   usuario?: { nombre?: string; rol?: string; correo?: string };
 };
 
@@ -34,9 +32,24 @@ export async function saveConfig(cambios: AppConfig): Promise<AppConfig> {
   });
   if (!r.ok) {
     const err = await r.json().catch(() => ({ detail: `Error HTTP ${r.status}` }));
-    throw new Error(err.detail ?? `Error al guardar configuración (HTTP ${r.status})`);
+    throw new Error(formatDetail(err.detail) ?? `Error al guardar configuración (HTTP ${r.status})`);
   }
   return r.json() as Promise<AppConfig>;
+}
+
+// FastAPI devuelve 422 con 'detail' como lista de errores de Pydantic
+// ([{ loc, msg, ... }]); con un string sale plano. Lo convertimos a un
+// mensaje legible en ambos casos.
+function formatDetail(detail: unknown): string | undefined {
+  if (typeof detail === 'string') return detail;
+  if (Array.isArray(detail)) {
+    return detail.map((e: any) => {
+      const campo = Array.isArray(e?.loc) ? e.loc.filter((p: unknown) => p !== 'body').join('.') : '';
+      return campo ? `${campo}: ${e?.msg ?? 'valor inválido'}` : String(e?.msg ?? JSON.stringify(e));
+    }).join(' · ');
+  }
+  if (detail && typeof detail === 'object') return (detail as any).msg ?? JSON.stringify(detail);
+  return undefined;
 }
 
 export async function uploadDatasetFile(file: File) {

@@ -50,33 +50,41 @@ ACCIONES = {
 
 # Score de prioridad por servidor (puntos). Cada factor tiene un tope.
 PESO_CRITICIDAD = {"CRITICAL": 5, "VERY_HIGH": 4, "HIGH": 3, "MEDIUM": 2, "LOW": 1}
-PUNTOS = {
-    "criticidad": 4,   # x nivel (1-5)                 -> máx 20
-    "expuesto": 20,    # INTERNET_EXPOSED
-    "eol": 10,         # EOL
-    "eol_eos": 15,     # EOL_EOS
-    "severidad": 3,    # x severidad máxima (1-5)      -> máx 15
-    "explotable": 5,   # x hallazgos explotables, tope 3 -> máx 15
-    "malware": 10,     # si tiene malware asociado
-    "fuera_sla": 2,    # x hallazgos fuera de SLA, tope 5 -> máx 10
-    "reabierto": 2,    # x hallazgos reabiertos, tope 3   -> máx 6
-    "antiguo": 1,      # x hallazgos >90 días, tope 5     -> máx 5
-}
-SCORE_MAX = 20 + 20 + 15 + 15 + 15 + 10 + 10 + 6 + 5  # 116
 
-# Pesos del score de prioridad editables desde la pantalla de Configuración.
-PESOS_DEFAULT = {
-    "criticidad": 4,   # x nivel (1-5)                 -> máx 20
-    "expuesto": 20,    # INTERNET_EXPOSED
-    "eol": 10,         # EOL
-    "eol_eos": 15,     # EOL_EOS
-    "severidad": 3,    # x severidad máxima (1-5)      -> máx 15
-    "explotable": 5,   # x hallazgos explotables, tope 3 -> máx 15
-    "malware": 10,     # si tiene malware asociado
-    "fuera_sla": 2,    # x hallazgos fuera de SLA, tope 5 -> máx 10
-    "reabierto": 2,    # x hallazgos reabiertos, tope 3   -> máx 6
-    "antiguo": 1,      # x hallazgos >90 días, tope 5     -> máx 5
-}
+# ----------------------------------------------------------------------
+# Orden editable de los 9 factores de riesgo (Configuración).
+# La empresa NO define pesos: solo reordena la prioridad. La escala de
+# puntos por posición es FIJA, así que SCORE_MAX queda en 116 y la
+# escala 0-100 / los cortes de prioridad no se descalibran.
+# ----------------------------------------------------------------------
+FACTORES = ["criticidad", "expuesto", "obsolescencia", "severidad", "explotable",
+            "malware", "fuera_sla", "reabierto", "antiguo"]
+ESCALA = [20, 20, 15, 15, 15, 10, 10, 6, 5]  # puntos máximos según posición (1°..9°)
+SCORE_MAX = sum(ESCALA)  # 116, constante
+
+
+def pesos_desde_orden(orden: list[str]) -> dict[str, float]:
+    """Convierte un orden de factores en pesos por unidad de cada contribución.
+
+    m = ESCALA[posición del factor]. Con el orden por defecto produce
+    exactamente el cálculo original: criticidad 4/nivel, expuesto 20,
+    EOL 10, EOL_EOS 15, severidad 3/nivel, explotable 5 (tope 3),
+    malware 10, fuera_sla 2 (tope 5), reabierto 2 (tope 3), antiguo 1 (tope 5).
+    """
+    m = {f: float(ESCALA[i]) for i, f in enumerate(orden)}
+    return {
+        "criticidad": m["criticidad"] / 5,   # x nivel (1-5)              -> máx m
+        "expuesto": m["expuesto"],           # INTERNET_EXPOSED          -> máx m
+        "eol": m["obsolescencia"] * 2 / 3,   # EOL (equivale a 2/3 de EOL_EOS)
+        "eol_eos": m["obsolescencia"],       # EOL_EOS                   -> máx m
+        "severidad": m["severidad"] / 5,     # x severidad máx (1-5)     -> máx m
+        "explotable": m["explotable"] / 3,   # x explotable (tope 3)     -> máx m
+        "malware": m["malware"],             # si tiene malware          -> máx m
+        "fuera_sla": m["fuera_sla"] / 5,     # x fuera SLA (tope 5)      -> máx m
+        "reabierto": m["reabierto"] / 3,     # x reabierto (tope 3)      -> máx m
+        "antiguo": m["antiguo"] / 5,         # x antiguo (tope 5)        -> máx m
+    }
+
 
 # Valores por defecto de lo que ahora se puede editar desde la pantalla de Configuración.
 CONFIG_DEFAULT = {
@@ -87,8 +95,8 @@ CONFIG_DEFAULT = {
     "bandas_proximo_vencer": ["AGE_31_90D"],
     # Cortes del índice de riesgo regional (0-100) para colorear el mapa.
     "cortes_riesgo": {"ALTO": 60, "MEDIO": 40},
-    # Pesos de cada factor del score de prioridad (0-100).
-    "pesos_score": dict(PESOS_DEFAULT),
+    # Orden de prioridad de los 9 factores (define los pesos según la escala fija).
+    "orden_factores": list(FACTORES),
     "usuario": {"nombre": "Usuario", "rol": "Auditor de TI", "correo": ""},
 }
 
@@ -158,16 +166,26 @@ class MetricsService:
     @staticmethod
     def get_config() -> dict:
         guardado = _leer_json(CONFIG_PATH, {})
+        # orden_factores se reemplaza COMPLETO (no se mezcla elemento por elemento)
+        # y solo si es válido: los 9 factores exactos, sin repetidos ni desconocidos.
+        orden_guardado = guardado.pop("orden_factores", None)
+        guardado.pop("pesos_score", None)  # llave vieja: se ignora
+        if not (isinstance(orden_guardado, list) and sorted(orden_guardado) == sorted(FACTORES)):
+            orden_guardado = None
         cfg = json.loads(json.dumps(CONFIG_DEFAULT))  # copia profunda
         for k, v in guardado.items():
             if isinstance(v, dict) and isinstance(cfg.get(k), dict):
                 cfg[k].update(v)
             else:
                 cfg[k] = v
+        if orden_guardado is not None:
+            cfg["orden_factores"] = list(orden_guardado)
         return cfg
 
     def actualizar_config(self, cambios: dict) -> dict:
         """Solo actualiza las llaves que vienen en 'cambios' (PUT parcial)."""
+        cambios = dict(cambios)
+        orden = cambios.pop("orden_factores", None)
         guardado = _leer_json(CONFIG_PATH, {})
         for k, v in cambios.items():
             if v is None:
@@ -176,6 +194,10 @@ class MetricsService:
                 guardado[k].update(v)
             else:
                 guardado[k] = v
+        if orden is not None:
+            guardado["orden_factores"] = list(orden)  # lista completa, sin mezclar
+        # Limpieza de llaves viejas/inválidas (p. ej. "pesos_score" de una versión anterior).
+        guardado.pop("pesos_score", None)
         _escribir_json(CONFIG_PATH, guardado)
         self.cfg = self.get_config()
         return self.cfg
@@ -498,7 +520,7 @@ class MetricsService:
         ).reset_index()
 
         df = srv.merge(agg, on="serverid", how="inner")
-        P = self.cfg["pesos_score"]  # pesos editables desde Configuración
+        P = pesos_desde_orden(self.cfg["orden_factores"])  # escala fija según orden
         raw = (
             df["assetcriticality"].map(PESO_CRITICIDAD).fillna(1) * P["criticidad"]
             + (df["exposurecategory"] == "INTERNET_EXPOSED") * P["expuesto"]
@@ -510,11 +532,9 @@ class MetricsService:
             + df["reabiertos"].clip(upper=3) * P["reabierto"]
             + df["antiguos"].clip(upper=5) * P["antiguo"]
         ).astype(float)
-        score_max = (
-            5 * P["criticidad"] + P["expuesto"] + max(P["eol"], P["eol_eos"]) + 5 * P["severidad"]
-            + 3 * P["explotable"] + P["malware"] + 5 * P["fuera_sla"] + 3 * P["reabierto"] + 5 * P["antiguo"]
-        )
-        df["score"] = (raw / score_max * 100).round().astype(int)
+        # score_max se queda fijo en 116 (SCORE_MAX): la escala de puntos por posición
+        # es fija, así que el 0-100 y los cortes de prioridad no se descalibran.
+        df["score"] = (raw / SCORE_MAX * 100).round().astype(int)
         cortes = self.cfg["cortes_prioridad"]
         df["prioridad"] = np.select(
             [df["score"] >= cortes["URGENTE"],

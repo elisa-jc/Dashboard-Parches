@@ -4,12 +4,12 @@ from typing import Literal
 
 from fastapi import APIRouter, Depends, File, Query, UploadFile
 from fastapi.responses import Response
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator, model_validator
 
 from app.repositories.base import BaseRepository
 from app.repositories.csv_repository import CSVRepository
 from app.repositories.sql_repository import SQLRepository
-from app.services.metrics_service import MetricsService
+from app.services.metrics_service import MetricsService, FACTORES
 
 router = APIRouter(prefix="/api/v1", tags=["Analíticas Ejecutivas - FEMSA"])
 
@@ -150,8 +150,33 @@ class ConfigIn(BaseModel):
     bandas_proximo_vencer: list[Literal["AGE_0_7D", "AGE_8_30D", "AGE_31_90D",
                                         "AGE_91_180D", "AGE_GT180D"]] | None = None
     cortes_riesgo: dict[Literal["ALTO", "MEDIO"], int] | None = None
-    pesos_score: dict[str, int] | None = None
+    orden_factores: list[str] | None = None
     usuario: Usuario | None = None
+
+    @field_validator("orden_factores")
+    @classmethod
+    def orden_valido(cls, v: list[str] | None) -> list[str] | None:
+        if v is None:
+            return v
+        if sorted(v) != sorted(FACTORES):
+            raise ValueError(
+                "orden_factores debe contener exactamente los 9 factores, sin repetidos ni ids desconocidos: "
+                + ", ".join(FACTORES))
+        return v
+
+    @model_validator(mode="after")
+    def cortes_coherentes(self):
+        c = self.cortes_prioridad
+        if c is not None:
+            # PUT parcial: puede venir solo una llave; se compara contra la
+            # config guardada (o el default) para no lanzar KeyError.
+            guardado = MetricsService.get_config()["cortes_prioridad"]
+            efectivo = {**guardado, **c}
+            if not (efectivo["URGENTE"] > efectivo["ALTA"] > efectivo["MEDIA"] > 0):
+                raise ValueError("cortes_prioridad debe cumplir URGENTE > ALTA > MEDIA > 0")
+            if any(x > 100 for x in efectivo.values()):
+                raise ValueError("cortes_prioridad: todos los cortes deben ser <= 100")
+        return self
 
 
 @router.get("/config")

@@ -4,6 +4,7 @@ services:
       context: ./backend
     environment:
       DATA_DIR: /data
+      DATABASE_URL: ${DATABASE_URL:-}
     volumes:
       - ./tablas_limpias:/data
     restart: unless-stopped

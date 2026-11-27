@@ -22,7 +22,7 @@ TipoCSV = Literal["servidores", "vulnerabilidades"]
 @lru_cache(maxsize=1)
 def get_repository() -> BaseRepository:
     """Con DATABASE_URL definido usa SQL; sin ella cae a CSV (respaldo para la demo)."""
-    url = os.getenv("DATABASE_URL")
+    url = (os.getenv("DATABASE_URL") or "").strip()
     if url:
         return SQLRepository(url)
     return CSVRepository()
